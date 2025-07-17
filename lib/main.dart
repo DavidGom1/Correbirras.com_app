@@ -33,6 +33,7 @@ final Color correbirrasBackground = Color(0xFFf9f9f9);
 class Race {
   final String month;
   final String name;
+  final String? date; // Added date field
   final String? zone;
   final String? type;
   final String? terrain;
@@ -42,6 +43,7 @@ class Race {
   Race({
     required this.month,
     required this.name,
+    this.date, // Added date to constructor
     this.zone,
     this.type,
     this.terrain,
@@ -51,7 +53,7 @@ class Race {
 
   @override
   String toString() {
-    return 'Race(month: $month, name: $name, zone: $zone, type: $type, terrain: $terrain, distances: $distances, link: $registrationLink)';
+    return 'Race(month: $month, name: $name, date: $date, zone: $zone, type: $type, terrain: $terrain, distances: $distances, link: $registrationLink)';
   }
 }
 
@@ -256,6 +258,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (currentMonth != null) {
         final List<html_dom.Element> tds = tr.querySelectorAll("td");
         if (tds.length < 4) continue;
+
+        final dateElement = tds[0]; // Assuming date is in the first td
         final nameElement = tds[1];
         final typeImgElement = tds[2].querySelector("img[alt]");
         final terrainImgElement = tds[3].querySelector("img[alt]");
@@ -277,6 +281,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
         String? name = nameElement.text.trim();
         if (name.isEmpty) continue;
+        String? date = dateElement.text.trim(); // Extracting date
         String? type = typeImgElement?.attributes['alt']?.trim();
         String? terrain = terrainImgElement?.attributes['alt']?.trim();
         String? zone;
@@ -306,6 +311,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Race(
             month: currentMonth,
             name: name,
+            date: date, // Pass date to constructor
             zone: zone,
             type: type,
             terrain: terrain,
@@ -583,15 +589,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                     if (states.contains(WidgetState.pressed)) {
                                       return Theme.of(
                                         context,
-                                      ).colorScheme.primary.withValues(
-                                        alpha: 0.8,
+                                      ).colorScheme.primary.withOpacity(
+                                        0.8,
                                       ); 
                                     }
                                     if (states.contains(WidgetState.hovered)) {
                                       return Theme.of(
                                         context,
-                                      ).colorScheme.primary.withValues(
-                                        alpha: 0.9,
+                                      ).colorScheme.primary.withOpacity(
+                                        0.9,
                                       );
                                     }
                                     return Color.fromRGBO(
@@ -643,14 +649,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                     Set<WidgetState> states,
                                   ) {
                                     if (states.contains(WidgetState.hovered)) {
-                                      return Colors.white.withValues(
-                                        alpha: 0.08,
+                                      return Colors.white.withOpacity(
+                                        0.08,
                                       );
                                     }
                                     if (states.contains(WidgetState.focused) ||
                                         states.contains(WidgetState.pressed)) {
-                                      return Colors.white.withValues(
-                                        alpha: 0.24,
+                                      return Colors.white.withOpacity(
+                                        0.24,
                                       );
                                     }
                                     return null;
@@ -704,6 +710,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               int titleMaxLines = isGridView ? 2 : 1;
                               double titleFontSize =
                                   isGridView ? 15.0 : 16.0;
+                              final TextStyle resultRace = TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey[800],
+                              );
 
                               return Card(
                                 margin: EdgeInsets.symmetric(
@@ -726,14 +736,38 @@ class _MyHomePageState extends State<MyHomePage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
-                                            child: Text(
-                                              race.name,
-                                              maxLines: titleMaxLines,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: titleFontSize,
-                                              ),
+                                            child: Column( // Added Column for name and date
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  race.name,
+                                                  maxLines: titleMaxLines,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: titleFontSize,
+                                                  ),
+                                                ),
+                                                if (race.date != null && race.date!.isNotEmpty) // Display date
+                                                  Container(
+                                                    margin: EdgeInsets.only(top: 4.0),
+                                                    child: Row(
+                                                    children: [
+                                                  Text(
+                                                    'Fecha: ',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '${race.date!} - ${race.month[0].toUpperCase()}${race.month.substring(1).toLowerCase()}' ,
+                                                    style: resultRace
+                                                  )
+                                                    ]
+                                                    )
+                                                ),
+                                              ],
                                             ),
                                           ),
                                           if (race.registrationLink != null)
@@ -752,21 +786,68 @@ class _MyHomePageState extends State<MyHomePage> {
                                             ),
                                         ],
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 0),
                                       if (race.zone != null)
-                                        Text('Zona: ${race.zone}',
-                                            style: TextStyle(fontSize: 13)),
-                                      if (race.type != null)
-                                        Text('Tipo: ${race.type}',
-                                            style: TextStyle(fontSize: 13)),
-                                      if (race.terrain != null)
-                                        Text('Terreno: ${race.terrain}',
-                                            style: TextStyle(fontSize: 13)),
-                                      if (race.distances.isNotEmpty)
-                                        Text(
-                                          'Distancias: ${race.distances.join('m, ')}m',
-                                          style: TextStyle(fontSize: 13),
+                                        Row(
+                                        children: [
+                                          Text(
+                                            'Zona: ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text('${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                              style: resultRace
+                                              ),
+                                          ]
                                         ),
+                                      if (race.type != null)
+                                        Row(
+                                        children: [
+                                          Text(
+                                            'Tipo: ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text('${race.type}',
+                                              style: resultRace
+                                              ),
+                                          ]
+                                        ),
+                                      if (race.terrain != null)
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Terreno: ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        Text('${race.terrain}',
+                                            style: resultRace
+                                            ),
+                                        ]
+                                      ),
+                                      if (race.distances.isNotEmpty)
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Distancias: ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        Text(
+                                          '${race.distances.join('m, ')}m',
+                                          style: resultRace
+                                        ),
+                                        ]
+                                      ),
                                       if (isGridView)
                                         const Spacer(),
                                     ],
