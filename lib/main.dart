@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart' as html_dom;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 
 const List<String> meseses = [
@@ -55,12 +55,58 @@ class Race {
   }
 }
 
+class RotatingIcon extends StatefulWidget {
+  final String imagePath;
+  final double size;
+
+  const RotatingIcon({
+    super.key,
+    required this.imagePath,
+    this.size = 100.0,
+  });
+
+  @override
+  _RotatingIconState createState() => _RotatingIconState();
+}
+
+class _RotatingIconState extends State<RotatingIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _controller,
+      child: Image.asset(
+        widget.imagePath,
+        width: widget.size,
+        height: widget.size,
+      ),
+    );
+  }
+}
+
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -77,12 +123,12 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({super.key, required this.title});
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -98,10 +144,31 @@ class _MyHomePageState extends State<MyHomePage> {
   double _filteredMaxDistance = 0;
   RangeValues _selectedDistanceRange = const RangeValues(0, 0);
 
+  bool _isWebViewVisible = false;
+  bool _isWebViewLoading = false;
+  late final WebViewController _controller;
+
   @override
   void initState() {
     super.initState();
     _downloadHtmlAndParse();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isWebViewLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              _isWebViewLoading = false;
+            });
+          },
+        ),
+      );
   }
 
   Future<String> _decodeHtml(http.Response response) async {
@@ -111,15 +178,15 @@ class _MyHomePageState extends State<MyHomePage> {
       if (contentType != null &&
           contentType.toLowerCase().contains('charset=iso-8859-1')) {
         htmlContent = latin1.decode(response.bodyBytes);
-        print("DEBUG: Decodificando como ISO-8859-1 (Latin-1)");
+        debugPrint("DEBUG: Decodificando como ISO-8859-1 (Latin-1)");
       } else {
         htmlContent = utf8.decode(response.bodyBytes, allowMalformed: true);
-        print("DEBUG: Decodificando como UTF-8");
+        debugPrint("DEBUG: Decodificando como UTF-8");
       }
     } catch (e) {
-      print("ERROR: Fallo al decodificar: $e");
+      debugPrint("ERROR: Fallo al decodificar: $e");
       htmlContent = utf8.decode(response.bodyBytes, allowMalformed: true);
-      print("DEBUG: Fallback a UTF-8 (allowMalformed)");
+      debugPrint("DEBUG: Fallback a UTF-8 (allowMalformed)");
     }
     return htmlContent;
   }
@@ -140,12 +207,12 @@ class _MyHomePageState extends State<MyHomePage> {
       if (response.statusCode == 200) {
         _parseHtmlAndExtractRaces(htmlContent);
       } else {
-        print(
+        debugPrint(
           "ERROR: Fallo al descargar HTML con código: ${response.statusCode}",
         );
       }
     } catch (e) {
-      print("ERROR: Excepción durante la descarga o decodificación: $e");
+      debugPrint("ERROR: Excepción durante la descarga o decodificación: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -287,7 +354,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (newMax > 0 &&
         (newDistanceRange.start > newMin || newDistanceRange.end < newMax)) {
       finalFilteredRaces = finalFilteredRaces.where((race) {
-        if (race.distances.isEmpty) return false;
+        if (race.distances.isEmpty) {
+          return false;
+        }
         return race.distances.any(
           (d) => d >= newDistanceRange.start && d <= newDistanceRange.end,
         );
@@ -304,21 +373,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _launchUrl(String url) async {
-    if (!await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    )) {
-      if (!await launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView)) {
-        throw Exception('No se pudo abrir el enlace: $url');
-      }
-    }
+  void _showRaceInWebView(String url) {
+    _controller.loadRequest(Uri.parse(url));
+    setState(() {
+      _isWebViewVisible = true;
+    });
   }
+
+  void _hideWebView() {
+    _controller.loadRequest(Uri.parse('about:blank'));
+    setState(() {
+      _isWebViewVisible = false;
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
     final List<String> availableMonths = ["all", ...meseses];
-    final List<String> availableZones = ["all", ...zonascolores.keys.toList()];
+    final List<String> availableZones = ["all", ...zonascolores.keys];
     final List<String> availableTypes = [
       "all",
       ..._allRaces.map((r) => r.type).whereType<String>().toSet().toList()
@@ -342,19 +415,21 @@ class _MyHomePageState extends State<MyHomePage> {
               fit: BoxFit.fitHeight,
               height: 35,
             ),
-            /*Text(
-                widget.title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
-            )*/
             actions: [
-              Builder(
-                builder: (BuildContext innerContext) {
-                  return IconButton(
-                    icon: const Icon(Icons.filter_alt_outlined),
-                    onPressed: () => Scaffold.of(innerContext).openEndDrawer(),
-                  );
-                },
-              ),
+              if (_isWebViewVisible)
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _hideWebView,
+                )
+              else
+                Builder(
+                  builder: (BuildContext innerContext) {
+                    return IconButton(
+                      icon: const Icon(Icons.filter_alt_outlined),
+                      onPressed: () => Scaffold.of(innerContext).openEndDrawer(),
+                    );
+                  },
+                ),
             ],
           ),
           endDrawer: Drawer(
@@ -501,7 +576,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           alignment: Alignment.center,
                           child: TextButton(
                             style: ButtonStyle(
-                              // Color de fondo del botón
                               backgroundColor:
                                   WidgetStateProperty.resolveWith<Color?>((
                                     Set<WidgetState> states,
@@ -511,31 +585,28 @@ class _MyHomePageState extends State<MyHomePage> {
                                         context,
                                       ).colorScheme.primary.withValues(
                                         alpha: 0.8,
-                                      ); // Color cuando está presionado
+                                      ); 
                                     }
                                     if (states.contains(WidgetState.hovered)) {
                                       return Theme.of(
                                         context,
                                       ).colorScheme.primary.withValues(
                                         alpha: 0.9,
-                                      ); // Color al pasar el mouse (si aplica)
+                                      );
                                     }
                                     return Color.fromRGBO(
                                       239,
                                       120,
                                       26,
                                       1,
-                                    ); // Color normal (usa el color primario del tema)
-                                    // O un color específico: return Colors.blue;
+                                    );
                                   }),
-                              // Color del texto (primer plano)
                               foregroundColor:
                                   WidgetStateProperty.resolveWith<Color?>((
                                     Set<WidgetState> states,
                                   ) {
-                                    return Colors.white; // Texto blanco
+                                    return Colors.white;
                                   }),
-                              // Forma del botón (bordes redondeados, etc.)
                               shape:
                                   WidgetStateProperty.all<
                                     RoundedRectangleBorder
@@ -543,36 +614,30 @@ class _MyHomePageState extends State<MyHomePage> {
                                     RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
                                         18.0,
-                                      ), // Bordes redondeados
-                                      // side: BorderSide(color: Colors.red) // Si quisieras un borde
+                                      ), 
                                     ),
                                   ),
-                              // Padding dentro del botón
                               padding: WidgetStateProperty.all<EdgeInsets>(
                                 const EdgeInsets.symmetric(
                                   horizontal: 24,
                                   vertical: 12,
                                 ),
                               ),
-                              // Elevación (sombra)
                               elevation:
                                   WidgetStateProperty.resolveWith<double?>((
                                     Set<WidgetState> states,
                                   ) {
-                                    if (states.contains(WidgetState.pressed))
-                                      return 2.0; // Menos elevación al presionar
-                                    return 5.0; // Elevación normal
+                                    if (states.contains(WidgetState.pressed)) {
+                                      return 2.0;
+                                    }
+                                    return 5.0;
                                   }),
-                              // Estilo del texto (si quieres sobrescribir el del child o definirlo aquí)
                               textStyle: WidgetStateProperty.all<TextStyle>(
                                 const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              // Mínimo tamaño del botón
-                              // minimumSize: MaterialStateProperty.all<Size>(Size(150, 50)),
-                              // Splash color (efecto al tocar)
                               overlayColor:
                                   WidgetStateProperty.resolveWith<Color?>((
                                     Set<WidgetState> states,
@@ -588,7 +653,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         alpha: 0.24,
                                       );
                                     }
-                                    return null; // Dejar el comportamiento por defecto
+                                    return null;
                                   }),
                             ),
                             onPressed: () =>
@@ -607,131 +672,154 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           body: _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : _filteredRaces.isEmpty
-              ? const Center(
-                  child: Text(
-                    "No hay carreras para mostrar con los filtros seleccionados.",
-                  ),
-                )
-              : LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              const double tabletBreakpoint = 600.0; // Ancho para cambiar a cuadrícula
-              // Ancho deseado de la tarjeta en cuadrícula para calcular columnas
-              const double cardWidthForGridReference = 350.0;
-
-              // --- INICIO DEL CÓDIGO DE LA TARJETA (lo definimos como una función local para no repetirlo) ---
-              Widget buildRaceItemWidget(Race race, bool isGridView) {
-                // Ajustes menores si es GridView
-                double cardHorizontalMargin = isGridView ? 8.0 : 16.0;
-                double cardPadding = isGridView ? 12.0 : 16.0;
-                int titleMaxLines = isGridView ? 2 : 1; // Permitir 2 líneas para el título en cuadrícula
-                double titleFontSize = isGridView ? 15.0 : 16.0;
-
-                return Card(
-                  margin: EdgeInsets.symmetric(
-                    horizontal: cardHorizontalMargin,
-                    vertical: 6.0, // Un poco más de espacio vertical
-                  ),
-                  elevation: 2.0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                  child: Padding(
-                    padding: EdgeInsets.all(cardPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      // mainAxisSize: MainAxisSize.min, // Útil para GridView
+              ? Center(child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'))
+              : _isWebViewVisible
+                  ? Stack(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                race.name,
-                                maxLines: titleMaxLines,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: titleFontSize,
-                                ),
-                              ),
-                            ),
-                            if (race.registrationLink != null)
-                              IconButton(
-                                icon: const Icon(Icons.launch),
-                                iconSize: 20.0,
-                                constraints: BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact, // Reduce el tamaño del área táctil
-                                onPressed: () => _launchUrl(race.registrationLink!),
-                                tooltip: 'Abrir enlace de inscripción',
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8), // Aumentado el espacio
-                        if (race.zone != null)
-                          Text('Zona: ${race.zone}', style: TextStyle(fontSize: 13)),
-                        if (race.type != null)
-                          Text('Tipo: ${race.type}', style: TextStyle(fontSize: 13)),
-                        if (race.terrain != null)
-                          Text('Terreno: ${race.terrain}', style: TextStyle(fontSize: 13)),
-                        if (race.distances.isNotEmpty)
-                          Text(
-                            'Distancias: ${race.distances.join('m, ')}m',
-                            style: TextStyle(fontSize: 13),
+                        if (!_isWebViewLoading)
+                          WebViewWidget(controller: _controller),
+                        if (_isWebViewLoading)
+                          Center(
+                            child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'),
                           ),
-                        // Si estás en GridView y quieres que las tarjetas tengan una altura más consistente,
-                        // puedes añadir un Spacer si la Column está dentro de un widget con altura definida
-                        // o ajustar el childAspectRatio cuidadosamente.
-                        if (isGridView) const Spacer(), // Ocupa espacio si la celda de la cuadrícula es más alta
                       ],
-                    ),
-                  ),
-                );
-              }
-              // --- FIN DEL CÓDIGO DE LA TARJETA ---
+                    )
+                  : _filteredRaces.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No hay carreras para mostrar con los filtros seleccionados.",
+                          ),
+                        )
+                      : LayoutBuilder(
+                          builder: (BuildContext context,
+                              BoxConstraints constraints) {
+                            const double tabletBreakpoint = 600.0;
+                            const double cardWidthForGridReference = 350.0;
 
+                            Widget buildRaceItemWidget(
+                                Race race, bool isGridView) {
+                              double cardHorizontalMargin =
+                                  isGridView ? 8.0 : 16.0;
+                              double cardPadding = isGridView ? 12.0 : 16.0;
+                              int titleMaxLines = isGridView ? 2 : 1;
+                              double titleFontSize =
+                                  isGridView ? 15.0 : 16.0;
 
-              if (constraints.maxWidth > tabletBreakpoint) {
-                // VISTA DE CUADRÍCULA para tablets/escritorio
-                int crossAxisCount = (constraints.maxWidth / cardWidthForGridReference).floor().clamp(2, 4);
-                if (constraints.maxWidth > tabletBreakpoint && crossAxisCount < 2) {
-                  crossAxisCount = 2;
-                }
+                              return Card(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: cardHorizontalMargin,
+                                  vertical: 6.0,
+                                ),
+                                elevation: 2.0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0)),
+                                child: Padding(
+                                  padding: EdgeInsets.all(cardPadding),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              race.name,
+                                              maxLines: titleMaxLines,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: titleFontSize,
+                                              ),
+                                            ),
+                                          ),
+                                          if (race.registrationLink != null)
+                                            IconButton(
+                                              icon: const Icon(Icons.launch),
+                                              iconSize: 20.0,
+                                              constraints: BoxConstraints(),
+                                              padding: EdgeInsets.zero,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              onPressed: () =>
+                                                  _showRaceInWebView(
+                                                      race.registrationLink!),
+                                              tooltip:
+                                                  'Abrir enlace de inscripción',
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      if (race.zone != null)
+                                        Text('Zona: ${race.zone}',
+                                            style: TextStyle(fontSize: 13)),
+                                      if (race.type != null)
+                                        Text('Tipo: ${race.type}',
+                                            style: TextStyle(fontSize: 13)),
+                                      if (race.terrain != null)
+                                        Text('Terreno: ${race.terrain}',
+                                            style: TextStyle(fontSize: 13)),
+                                      if (race.distances.isNotEmpty)
+                                        Text(
+                                          'Distancias: ${race.distances.join('m, ')}m',
+                                          style: TextStyle(fontSize: 13),
+                                        ),
+                                      if (isGridView)
+                                        const Spacer(),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
 
-                double cardWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 10.0) - 24.0) / crossAxisCount;
-                // ALTURA DESEADA DE LA TARJETA EN CUADRÍCULA - ¡AJUSTA ESTO!
-                // Esta es la parte más importante para que `childAspectRatio` funcione.
-                // Prueba con diferentes valores hasta que el contenido de tu tarjeta se vea bien sin desbordarse.
-                double cardHeight = 200.0; // EJEMPLO: Podría ser 180, 220, 240 etc.
+                            if (constraints.maxWidth > tabletBreakpoint) {
+                              int crossAxisCount = (constraints.maxWidth /
+                                      cardWidthForGridReference)
+                                  .floor()
+                                  .clamp(2, 4);
+                              if (constraints.maxWidth > tabletBreakpoint) {
+                                if (crossAxisCount < 2) {
+                                  crossAxisCount = 2;
+                                }
+                              }
 
-                return GridView.builder(
-                  padding: const EdgeInsets.all(12.0),
-                  itemCount: _filteredRaces.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 10.0,
-                    mainAxisSpacing: 10.0,
-                    childAspectRatio: cardWidth / cardHeight,
-                  ),
-                  itemBuilder: (context, index) {
-                    final race = _filteredRaces[index];
-                    return buildRaceItemWidget(race, true); // true porque es GridView
-                  },
-                );
-              } else {
-                // VISTA DE LISTA para móviles
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0), // Padding para la lista
-                  itemCount: _filteredRaces.length,
-                  itemBuilder: (context, index) {
-                    final race = _filteredRaces[index];
-                    return buildRaceItemWidget(race, false); // false porque no es GridView
-                  },
-                );
-              }
-            },
-          ),
+                              double cardWidth = (constraints.maxWidth -
+                                      ((crossAxisCount - 1) * 10.0) -
+                                      24.0) /
+                                  crossAxisCount;
+                              double cardHeight = 200.0;
+
+                              return GridView.builder(
+                                padding: const EdgeInsets.all(12.0),
+                                itemCount: _filteredRaces.length,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 10.0,
+                                  mainAxisSpacing: 10.0,
+                                  childAspectRatio: cardWidth / cardHeight,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final race = _filteredRaces[index];
+                                  return buildRaceItemWidget(race, true);
+                                },
+                              );
+                            } else {
+                              return ListView.builder(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                itemCount: _filteredRaces.length,
+                                itemBuilder: (context, index) {
+                                  final race = _filteredRaces[index];
+                                  return buildRaceItemWidget(race, false);
+                                },
+                              );
+                            }
+                          },
+                        ),
         ),
       ),
     );

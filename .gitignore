@@ -46,6 +46,8 @@ out/
 /android/captures/
 *.hprof
 *.keystore
+*.jks
+key.properties
 
 # Web
 /web/build/
