@@ -1,0 +1,104 @@
+# Miscellaneous
+*.class
+*.jar
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Visual Studio Code
+.vscode/
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/App.framework
+/ios/Flutter/Flutter.framework
+/ios/Flutter/engine
+/ios/Flutter/flutter_assets
+/ios/Runner/GeneratedPluginRegistrant.*
+/ios/Runner.xcworkspace
+/ios/Flutter/ephemeral
+
+# Android
+.gradle/
+/android/app/src/main/assets/flutter_assets/
+/android/key.properties
+/android/local.properties
+/android/captures/
+*.hprof
+*.keystore
+
+# Web
+/web/build/
+/web/dart_tool/
+/web/.dart_tool/
+/web/.idea/
+/web/.vscode/
+/web/out/
+/web/packages/
+/web/pubspec.lock
+/web/.pub-cache/
+/web/.pub/
+
+# Danger
+# It is strongly recommended to add the following files to your .gitignore
+# Uncomment the lines below to ignore them
+#/ios/Runner/GoogleService-Info.plist
+#/android/app/google-services.json
+
+# Exceptions
+!/packages/
+!/packages/flutter_tools/
+!/packages/flutter_tools/lib/src/ios/simulators.dart
+!/packages/flutter_tools/lib/src/ios/devices.dart
+!/packages/flutter_tools/lib/src/ios/ios_deploy.dart
+!/packages/flutter_tools/lib/src/ios/mac.dart
+!/packages/flutter_tools/lib/src/ios/xcodeproj.dart
+!/packages/flutter_tools/bin/flutter_tools.dart
+!/packages/flutter/
+!/packages/flutter_test/
+!/packages/flutter_driver/
+!/bin/cache/
+!/bin/cache/artifacts/
+!/bin/cache/pkg/
+!/bin/cache/sdk/
+!/bin/cache/dart-sdk/
+!/bin/cache/engine/
+!/bin/cache/flutter_tools.snapshot
+!/bin/cache/flutter_tools.stamp
+!/bin/cache/flutter.version.json
+!/bin/cache/flutter_sdk.stamp
+!/bin/cache/release_info.json
+!/bin/cache/flutter_sdk.version
+!/bin/cache/last_active_sdk
+!/bin/cache/flutter_sdk.stamp-sdk
+!/bin/cache/flutter_sdk.stamp-engine
+!/bin/cache/flutter_sdk.stamp-update
+!/bin/cache/flutter_sdk.stamp-version
+!/bin/cache/flutter_sdk.stamp-framework
+!/bin/cache/flutter_sdk.stamp-ios
+!/bin/cache/flutter_sdk.stamp-android
+!/bin/cache/flutter_sdk.stamp-web
+!/bin/cache/flutter_sdk.stamp-linux
+!/bin/cache/flutter_sdk.stamp-windows
+!/bin/cache/flutter_sdk.stamp-fuchsia
+!/bin/cache/flutter_sdk.stamp-macos
