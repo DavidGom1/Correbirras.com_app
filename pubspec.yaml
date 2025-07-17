@@ -24,5 +24,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  uses-material-design: true  # Esto probablemente ya esté ahí
 
-  uses-material-design: true
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/images/ # Esta línea incluye todo lo que esté en assets/images/
