@@ -4,6 +4,7 @@ import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart' as html_dom;
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 const List<String> meseses = [
   "enero",
@@ -153,10 +154,17 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color.fromRGBO(239, 120, 26, 1), // Color de la barra de estado (notificaciones)
+      statusBarIconBrightness: Brightness.light, // Color de los iconos de la barra de estado (oscuro o claro)
+      systemStatusBarContrastEnforced: true,
+      systemNavigationBarColor: Color.fromRGBO(239, 120, 26, 1), // Color de la barra de navegación
+      systemNavigationBarIconBrightness: Brightness.light, // Color de los iconos (claro u oscuro)
+    ));
     _downloadHtmlAndParse();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
+      ..setBackgroundColor(const Color.fromARGB(0, 0, 0, 0))
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -171,6 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         ),
       );
+      
   }
 
   Future<String> _decodeHtml(http.Response response) async {
@@ -393,6 +402,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  
+
 
   @override
   Widget build(BuildContext context) {
@@ -412,46 +423,62 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       color: Color.fromRGBO(239, 120, 26, 1),
       child: SafeArea(
-        child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: Color.fromRGBO(239, 120, 26, 1),
-            foregroundColor: Colors.white,
-            title: Image.asset(
-              'assets/images/Correbirras_00.png',
-              fit: BoxFit.fitHeight,
-              height: 35,
+        child: WillPopScope(
+          onWillPop: () async {
+            if (_isWebViewVisible) {
+              _hideWebView();
+              return false; // Evita que la ruta se cierre (la app no se cierra)
+            }
+            return true; // Permite que la ruta se cierre (la app se cerrará si no hay más rutas)
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              elevation: 4,
+              shadowColor: const Color.fromARGB(186, 0, 0, 0),
+              backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+              foregroundColor: Colors.white,
+              leading: Builder( // Added Builder for the leading IconButton
+                builder: (BuildContext innerContext) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu), // Menu icon
+                    onPressed: () => Scaffold.of(innerContext).openDrawer(), // Open the new Drawer
+                  );
+                },
+              ),
+              title: Image.asset(
+                'assets/images/Correbirras_00.png',
+                fit: BoxFit.fitHeight,
+                height: 35,
+              ),
+              centerTitle: true,
+              actions: [
+                if (_isWebViewVisible)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _hideWebView,
+                  )
+                else
+                  Builder(
+                    builder: (BuildContext innerContext) {
+                      return IconButton(
+                        icon: const Icon(Icons.filter_alt_outlined),
+                        onPressed: () => Scaffold.of(innerContext).openEndDrawer(),
+                      );
+                    },
+                  ),
+              ],
             ),
-            actions: [
-              if (_isWebViewVisible)
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: _hideWebView,
-                )
-              else
-                Builder(
-                  builder: (BuildContext innerContext) {
-                    return IconButton(
-                      icon: const Icon(Icons.filter_alt_outlined),
-                      onPressed: () => Scaffold.of(innerContext).openEndDrawer(),
-                    );
-                  },
-                ),
-            ],
-          ),
-          endDrawer: Drawer(
-            child: Material(
-              color: Colors.white,
+            drawer: Drawer(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: <Widget>[
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 20),
+                  const DrawerHeader(
                     decoration: BoxDecoration(
                       color: Color.fromRGBO(239, 120, 26, 1),
                     ),
                     child: Center(
                       child: Text(
-                        'Filtros',
+                        'Menú',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 35,
@@ -460,215 +487,48 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
                   ListTile(
-                    title: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedMonth,
-                      onChanged: (v) {
-                        setState(() => _selectedMonth = v!);
-                        _applyFilters(basicFilterChanged: true);
-                      },
-                      items: availableMonths
-                          .map(
-                            (m) => DropdownMenuItem(
-                              value: m,
-                              child: Text(
-                                m == "all"
-                                    ? "Mes"
-                                    : m[0].toUpperCase() + m.substring(1),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                    leading: Icon(Icons.web),
+                    title: const Text('Ver la pagina correbirras.com'),
+                    onTap: () {
+                      Navigator.pop(context); // Close the drawer
+                      _showRaceInWebView('https://www.correbirras.com/Agenda_carreras.html'); // Reusing the webview function
+                    },
                   ),
                   ListTile(
-                    title: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedZone,
-                      onChanged: (v) {
-                        setState(() => _selectedZone = v!);
-                        _applyFilters(basicFilterChanged: true);
-                      },
-                      items: availableZones
-                          .map(
-                            (z) => DropdownMenuItem(
-                              value: z,
-                              child: Text(
-                                z == "all"
-                                    ? "Zona"
-                                    : z[0].toUpperCase() + z.substring(1),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                    leading: Icon(Icons.email),
+                    title: const Text('Contacta con el club'),
+                    onTap: () {
+                      Navigator.pop(context); // Close the drawer
+                      _sendEmail('correbirras@gmail.com'); // New function to send email
+                    },
                   ),
                   ListTile(
-                    title: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedType,
-                      onChanged: (v) {
-                        setState(() => _selectedType = v!);
-                        _applyFilters(basicFilterChanged: true);
-                      },
-                      items: availableTypes
-                          .map(
-                            (t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(t == "all" ? "Tipo" : t),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                    leading: Icon(Icons.star),
+                    title: const Text('Calificar en Google Play'),
+                    onTap: () {
+                      Navigator.pop(context); // Close the drawer
+                      _rateApp(); // New function to rate the app
+                    },
                   ),
-                  ListTile(
-                    title: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedTerrain,
-                      onChanged: (v) {
-                        setState(() => _selectedTerrain = v!);
-                        _applyFilters(basicFilterChanged: true);
-                      },
-                      items: availableTerrains
-                          .map(
-                            (t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(t == "all" ? "Terreno" : t),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                  ListTile(
-                    title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const Expanded(child: SizedBox()), // Fill remaining space
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Distancia (metros)'),
-                        RangeSlider(
-                          values: _selectedDistanceRange,
-                          min: _filteredMinDistance,
-                          max: _filteredMaxDistance > _filteredMinDistance
-                              ? _filteredMaxDistance
-                              : _filteredMinDistance + 1,
-                          divisions:
-                              (_filteredMaxDistance > _filteredMinDistance)
-                              ? ((_filteredMaxDistance - _filteredMinDistance) /
-                                        100)
-                                    .round()
-                                    .clamp(1, 1000)
-                              : null,
-                          labels: RangeLabels(
-                            _selectedDistanceRange.start.round().toString(),
-                            _selectedDistanceRange.end.round().toString(),
-                          ),
-                          activeColor: Color.fromRGBO(239, 120, 26, 1),
-                          inactiveColor: Colors.grey,
-                          onChanged: (values) =>
-                              setState(() => _selectedDistanceRange = values),
-                          onChangeEnd: (values) =>
-                              _applyFilters(basicFilterChanged: false),
+                        IconButton(
+                          icon: Image.asset('assets/images/facebook_icon.png', width: 30, height: 30), // Assuming you have facebook_icon.png in assets/images
+                          onPressed: () {
+                            _launchURL('https://www.facebook.com/correbirras');
+                          },
                         ),
-                        Container(
-                          padding: EdgeInsets.only(bottom: 10),
-                          child: Center(
-                            child: Text(
-                              "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.center,
-                          child: TextButton(
-                            style: ButtonStyle(
-                              backgroundColor:
-                                  WidgetStateProperty.resolveWith<Color?>((
-                                    Set<WidgetState> states,
-                                  ) {
-                                    if (states.contains(WidgetState.pressed)) {
-                                      return Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(
-                                        0.8,
-                                      ); 
-                                    }
-                                    if (states.contains(WidgetState.hovered)) {
-                                      return Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(
-                                        0.9,
-                                      );
-                                    }
-                                    return Color.fromRGBO(
-                                      239,
-                                      120,
-                                      26,
-                                      1,
-                                    );
-                                  }),
-                              foregroundColor:
-                                  WidgetStateProperty.resolveWith<Color?>((
-                                    Set<WidgetState> states,
-                                  ) {
-                                    return Colors.white;
-                                  }),
-                              shape:
-                                  WidgetStateProperty.all<
-                                    RoundedRectangleBorder
-                                  >(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        18.0,
-                                      ), 
-                                    ),
-                                  ),
-                              padding: WidgetStateProperty.all<EdgeInsets>(
-                                const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                              ),
-                              elevation:
-                                  WidgetStateProperty.resolveWith<double?>((
-                                    Set<WidgetState> states,
-                                  ) {
-                                    if (states.contains(WidgetState.pressed)) {
-                                      return 2.0;
-                                    }
-                                    return 5.0;
-                                  }),
-                              textStyle: WidgetStateProperty.all<TextStyle>(
-                                const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              overlayColor:
-                                  WidgetStateProperty.resolveWith<Color?>((
-                                    Set<WidgetState> states,
-                                  ) {
-                                    if (states.contains(WidgetState.hovered)) {
-                                      return Colors.white.withOpacity(
-                                        0.08,
-                                      );
-                                    }
-                                    if (states.contains(WidgetState.focused) ||
-                                        states.contains(WidgetState.pressed)) {
-                                      return Colors.white.withOpacity(
-                                        0.24,
-                                      );
-                                    }
-                                    return null;
-                                  }),
-                            ),
-                            onPressed: () =>
-                                _applyFilters(basicFilterChanged: true),
-                            child: const Text(
-                              'Restablecer distancia',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
+                        SizedBox(width: 20),
+                        IconButton(
+                          icon: Image.asset('assets/images/instagram_icon.png', width: 30, height: 30), // Assuming you have instagram_icon.png in assets/images
+                          onPressed: () {
+                            _launchURL('https://www.instagram.com/correbirras');
+                          },
                         ),
                       ],
                     ),
@@ -676,181 +536,430 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-          ),
-          body: _isLoading
-              ? Center(child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'))
-              : _isWebViewVisible
-                  ? Stack(
-                      children: [
-                        if (!_isWebViewLoading)
-                          WebViewWidget(controller: _controller),
-                        if (_isWebViewLoading)
-                          Center(
-                            child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'),
+            endDrawer: Drawer(
+              child: Material(
+                color: Colors.white,
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: <Widget>[
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(239, 120, 26, 1),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Filtros',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 35,
+                            fontWeight: FontWeight.bold,
                           ),
-                      ],
-                    )
-                  : _filteredRaces.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "No hay carreras para mostrar con los filtros seleccionados.",
-                          ),
-                        )
-                      : LayoutBuilder(
-                          builder: (BuildContext context,
-                              BoxConstraints constraints) {
-                            const double tabletBreakpoint = 600.0;
-                            const double cardWidthForGridReference = 350.0;
-
-                            Widget buildRaceItemWidget(
-                                Race race, bool isGridView) {
-                              double cardHorizontalMargin =
-                                  isGridView ? 8.0 : 16.0;
-                              double cardPadding = isGridView ? 12.0 : 16.0;
-                              int titleMaxLines = isGridView ? 2 : 1;
-                              double titleFontSize =
-                                  isGridView ? 15.0 : 16.0;
-                              final TextStyle resultRace = TextStyle(
-                                fontSize: 15,
-                                color: Colors.grey[800],
-                              );
-
-                              return Card(
-                                margin: EdgeInsets.symmetric(
-                                  horizontal: cardHorizontalMargin,
-                                  vertical: 6.0,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    ListTile(
+                      title: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedMonth,
+                        onChanged: (v) {
+                          setState(() => _selectedMonth = v!);
+                          _applyFilters(basicFilterChanged: true);
+                        },
+                        items: availableMonths
+                            .map(
+                              (m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(
+                                  m == "all"
+                                      ? "Mes"
+                                      : m[0].toUpperCase() + m.substring(1),
                                 ),
-                                elevation: 2.0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0)),
-                                child: Padding(
-                                  padding: EdgeInsets.all(cardPadding),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    ListTile(
+                      title: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedZone,
+                        onChanged: (v) {
+                          setState(() => _selectedZone = v!);
+                          _applyFilters(basicFilterChanged: true);
+                        },
+                        items: availableZones
+                            .map(
+                              (z) => DropdownMenuItem(
+                                value: z,
+                                child: Text(
+                                  z == "all"
+                                      ? "Zona"
+                                      : z[0].toUpperCase() + z.substring(1),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    ListTile(
+                      title: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedType,
+                        onChanged: (v) {
+                          setState(() => _selectedType = v!);
+                          _applyFilters(basicFilterChanged: true);
+                        },
+                        items: availableTypes
+                            .map(
+                              (t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t == "all" ? "Tipo" : t),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    ListTile(
+                      title: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedTerrain,
+                        onChanged: (v) {
+                          setState(() => _selectedTerrain = v!);
+                          _applyFilters(basicFilterChanged: true);
+                        },
+                        items: availableTerrains
+                            .map(
+                              (t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t == "all" ? "Terreno" : t),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    ListTile(
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Distancia (metros)'),
+                          RangeSlider(
+                            values: _selectedDistanceRange,
+                            min: _filteredMinDistance,
+                            max: _filteredMaxDistance > _filteredMinDistance
+                                ? _filteredMaxDistance
+                                : _filteredMinDistance + 1,
+                            divisions:
+                                (_filteredMaxDistance > _filteredMinDistance)
+                                ? ((_filteredMaxDistance - _filteredMinDistance) /
+                                          100)
+                                      .round()
+                                      .clamp(1, 1000)
+                                : null,
+                            labels: RangeLabels(
+                              _selectedDistanceRange.start.round().toString(),
+                              _selectedDistanceRange.end.round().toString(),
+                            ),
+                            activeColor: Color.fromRGBO(239, 120, 26, 1),
+                            inactiveColor: Colors.grey,
+                            onChanged: (values) =>
+                                setState(() => _selectedDistanceRange = values),
+                            onChangeEnd: (values) =>
+                                _applyFilters(basicFilterChanged: false),
+                          ),
+                          Container(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: Center(
+                              child: Text(
+                                "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
+                              ),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton(
+                              style: ButtonStyle(
+                                backgroundColor:
+                                    WidgetStateProperty.resolveWith<Color?>((
+                                      Set<WidgetState> states,
+                                    ) {
+                                      if (states.contains(WidgetState.pressed)) {
+                                        return Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(
+                                          0.8,
+                                        ); 
+                                      }
+                                      if (states.contains(WidgetState.hovered)) {
+                                        return Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(
+                                          0.9,
+                                        );
+                                      }
+                                      return Color.fromRGBO(
+                                        239,
+                                        120,
+                                        26,
+                                        1,
+                                      );
+                                    }),
+                                foregroundColor:
+                                    WidgetStateProperty.resolveWith<Color?>((
+                                      Set<WidgetState> states,
+                                    ) {
+                                      return Colors.white;
+                                    }),
+                                shape:
+                                    WidgetStateProperty.all<
+                                      RoundedRectangleBorder
+                                    >(
+                                      RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          18.0,
+                                        ), 
+                                      ),
+                                    ),
+                                padding: WidgetStateProperty.all<EdgeInsets>(
+                                  const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                elevation:
+                                    WidgetStateProperty.resolveWith<double?>((
+                                      Set<WidgetState> states,
+                                    ) {
+                                      if (states.contains(WidgetState.pressed)) {
+                                        return 2.0;
+                                      }
+                                      return 5.0;
+                                    }),
+                                textStyle: WidgetStateProperty.all<TextStyle>(
+                                  const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                overlayColor:
+                                    WidgetStateProperty.resolveWith<Color?>((
+                                      Set<WidgetState> states,
+                                    ) {
+                                      if (states.contains(WidgetState.hovered)) {
+                                        return Colors.white.withOpacity(
+                                          0.08,
+                                        );
+                                      }
+                                      if (states.contains(WidgetState.focused) ||
+                                          states.contains(WidgetState.pressed)) {
+                                        return Colors.white.withOpacity(
+                                          0.24,
+                                        );
+                                      }
+                                      return null;
+                                    }),
+                              ),
+                              onPressed: () =>
+                                  _applyFilters(basicFilterChanged: true),
+                              child: const Text(
+                                'Restablecer distancia',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            body: _isLoading
+                ? Center(child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'))
+                : _isWebViewVisible
+                    ? Stack(
+                        children: [
+                          if (!_isWebViewLoading)
+                            WebViewWidget(controller: _controller),
+                          if (_isWebViewLoading)
+                            Center(
+                              child: RotatingIcon(imagePath: 'assets/images/rotation_icon.png'),
+                            ),
+                        ],
+                      )
+                    : _filteredRaces.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "No hay carreras para mostrar con los filtros seleccionados.",
+                            ),
+                          )
+                        : LayoutBuilder(
+                            builder: (BuildContext context,
+                                BoxConstraints constraints) {
+                              const double tabletBreakpoint = 600.0;
+                              const double cardWidthForGridReference = 350.0;
+
+                              Widget buildRaceItemWidget(
+                                  Race race, bool isGridView) {
+                                double cardHorizontalMargin =
+                                    isGridView ? 8.0 : 16.0;
+                                double cardPadding = isGridView ? 12.0 : 16.0;
+                                int titleMaxLines = isGridView ? 2 : 1;
+                                double titleFontSize =
+                                    isGridView ? 15.0 : 16.0;
+                                final TextStyle resultRace = TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey[800],
+                                );
+
+                                return InkWell(
+                                  onTap: () {
+                                    // Aquí va el código que se ejecutará al pulsar la tablilla
+                                    if (race.registrationLink != null) {
+                                      _showRaceInWebView(race.registrationLink!);
+                                    } else {
+                                      print('No hay enlace de inscripción disponible para ${race.name}');
+                                    }
+                                  },
+                                  child: Card(
+                                    margin: EdgeInsets.symmetric(
+                                      horizontal: cardHorizontalMargin,
+                                      vertical: 6.0,
+                                    ),
+                                    elevation: 2.0,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8.0)),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(cardPadding),
+                                      child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(
-                                            child: Column( // Added Column for name and date
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  race.name,
-                                                  maxLines: titleMaxLines,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: titleFontSize,
-                                                  ),
-                                                ),
-                                                if (race.date != null && race.date!.isNotEmpty) // Display date
-                                                  Container(
-                                                    margin: EdgeInsets.only(top: 4.0),
-                                                    child: Row(
-                                                    children: [
-                                                  Text(
-                                                    'Fecha: ',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.bold,
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                
+                                                child: Column( // Added Column for name and date
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      race.name,
+                                                      maxLines: titleMaxLines,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: titleFontSize,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  Text(
-                                                    '${race.date!} - ${race.month[0].toUpperCase()}${race.month.substring(1).toLowerCase()}' ,
-                                                    style: resultRace
-                                                  )
-                                                    ]
-                                                    )
+                                                    if (race.date != null && race.date!.isNotEmpty) // Display date
+                                                      Container(
+                                                        margin: EdgeInsets.only(top: 4.0),
+                                                        child: Row(
+                                                        children: [
+                                                      Text(
+                                                        'Fecha: ',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        '${race.date!} - ${race.month[0].toUpperCase()}${race.month.substring(1).toLowerCase()}' ,
+                                                        style: resultRace
+                                                      )
+                                                        ]
+                                                        )
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                          if (race.registrationLink != null)
-                                            IconButton(
-                                              icon: const Icon(Icons.launch),
-                                              iconSize: 20.0,
-                                              constraints: BoxConstraints(),
-                                              padding: EdgeInsets.zero,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              onPressed: () =>
-                                                  _showRaceInWebView(
-                                                      race.registrationLink!),
-                                              tooltip:
-                                                  'Abrir enlace de inscripción',
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 0),
-                                      if (race.zone != null)
-                                        Row(
-                                        children: [
-                                          Text(
-                                            'Zona: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text('${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                              style: resultRace
                                               ),
-                                          ]
-                                        ),
-                                      if (race.type != null)
-                                        Row(
-                                        children: [
-                                          Text(
-                                            'Tipo: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                              /*if (race.registrationLink != null)
+                                                IconButton(
+                                                  icon: const Icon(Icons.launch),
+                                                  iconSize: 20.0,
+                                                  constraints: BoxConstraints(),
+                                                  padding: EdgeInsets.zero,
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                  onPressed: () =>
+                                                      _showRaceInWebView(
+                                                          race.registrationLink!),
+                                                  tooltip:
+                                                      'Abrir enlace de inscripción',
+                                                ),*/
+                                            ],
                                           ),
-                                          Text('${race.type}',
-                                              style: resultRace
+                                          const SizedBox(height: 0),
+                                          if (race.zone != null)
+                                            Row(
+                                            children: [
+                                              Text(
+                                                'Zona: ',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
-                                          ]
-                                        ),
-                                      if (race.terrain != null)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Terreno: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
+                                              Text('${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                                  style: resultRace
+                                                  ),
+                                              ]
                                             ),
+                                          if (race.type != null)
+                                            Row(
+                                            children: [
+                                              Text(
+                                                'Tipo: ',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text('${race.type}',
+                                                  style: resultRace
+                                                  ),
+                                              ]
+                                            ),
+                                          if (race.terrain != null)
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'Terreno: ',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            Text('${race.terrain}',
+                                                style: resultRace
+                                                ),
+                                            ]
                                           ),
-                                        Text('${race.terrain}',
+                                          if (race.distances.isNotEmpty)
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'Distancias: ',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                            ),
+                                          Text(
+                                            '${race.distances.join('m, ')}m',
                                             style: resultRace
-                                            ),
-                                        ]
-                                      ),
-                                      if (race.distances.isNotEmpty)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Distancias: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
                                           ),
-                                        Text(
-                                          '${race.distances.join('m, ')}m',
-                                          style: resultRace
+                                          ]
                                         ),
-                                        ]
-                                      ),
-                                      if (isGridView)
-                                        const Spacer(),
-                                    ],
+                                        if (isGridView)
+                                          const Spacer(),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -901,6 +1010,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             }
                           },
                         ),
+          ),
         ),
       ),
     );
