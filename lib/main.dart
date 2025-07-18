@@ -7,6 +7,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:myapp/pdf_viewer_screen.dart'; 
 
 const List<String> meseses = [
   "enero",
@@ -556,7 +557,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: const Text('Ver la pagina correbirras.com'),
                           onTap: () {
                             Navigator.pop(context); // Close the drawer
-                            _showRaceInWebView(
+                            _launchURL(
                               'https://www.correbirras.com/Agenda_carreras.html',
                             ); // Reusing the webview function
                           },
@@ -901,11 +902,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           return InkWell(
                             onTap: () {
-                              // Aquí va el código que se ejecutará al pulsar la tablilla
+                                // ---- ¡Paso 1: Ver si el clic se registra! ----
+                              debugPrint('--- ¡InkWell pulsado para la carrera: ${race.name}! ---');
                               if (race.registrationLink != null) {
-                                _showRaceInWebView(race.registrationLink!);
+                                final url = race.registrationLink!;
+                                // Cambio: Verifico si la URL es un PDF
+                                debugPrint('DEBUG: Tapped on link: $url');
+                                if (url.toLowerCase().endsWith('.pdf')) {
+                                  debugPrint('DEBUG: Detected PDF, navigating to viewer...'); // Imprimimos para confirmar
+                                    Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PdfViewerScreen(url: url),
+                                    ),
+                                  );
+                                } else {
+                                  // Comportamiento anterior para enlaces que no son PDF
+                                  _showRaceInWebView(url);
+                                }
                               } else {
-                                print(
+                                debugPrint(
                                   'No hay enlace de inscripción disponible para ${race.name}',
                                 );
                               }
