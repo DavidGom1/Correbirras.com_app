@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
@@ -7,7 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:myapp/pdf_viewer_screen.dart'; 
+import 'package:myapp/pdf_viewer_screen.dart';
 
 const List<String> meseses = [
   "enero",
@@ -495,8 +494,15 @@ class _MyHomePageState extends State<MyHomePage> {
             appBar: AppBar(
               elevation: 0,
               systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarColor: Color.fromRGBO(239, 120, 26, 1), // Color deseado
-                statusBarIconBrightness: Brightness.light, // Los iconos de la barra de estado se verán blancos
+                statusBarColor: Color.fromRGBO(
+                  239,
+                  120,
+                  26,
+                  1,
+                ), // Color deseado
+                statusBarIconBrightness:
+                    Brightness
+                        .light, // Los iconos de la barra de estado se verán blancos
               ),
               shadowColor: const Color.fromARGB(186, 0, 0, 0),
               backgroundColor: Color.fromRGBO(239, 120, 26, 1),
@@ -902,20 +908,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           return InkWell(
                             onTap: () {
-                                // ---- ¡Paso 1: Ver si el clic se registra! ----
-                              debugPrint('--- ¡InkWell pulsado para la carrera: ${race.name}! ---');
+                              // ---- ¡Paso 1: Ver si el clic se registra! ----
+                              debugPrint(
+                                '--- ¡InkWell pulsado para la carrera: ${race.name}! ---',
+                              );
                               if (race.registrationLink != null) {
                                 final url = race.registrationLink!;
                                 // Cambio: Verifico si la URL es un PDF
                                 debugPrint('DEBUG: Tapped on link: $url');
                                 if (url.toLowerCase().endsWith('.pdf')) {
-                                  debugPrint('DEBUG: Detected PDF, navigating to viewer...'); // Imprimimos para confirmar
-                                    Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PdfViewerScreen(url: url),
-                                    ),
-                                  );
+                                  debugPrint(
+                                    'DEBUG: Detected PDF, navigating to viewer...',
+                                  ); // Imprimimos para confirmar
+                                  _launchURL(url);
                                 } else {
                                   // Comportamiento anterior para enlaces que no son PDF
                                   _showRaceInWebView(url);
