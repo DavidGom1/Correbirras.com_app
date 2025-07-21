@@ -6,7 +6,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:myapp/pdf_viewer_screen.dart';
 
 const List<String> meseses = [
   "enero",
@@ -190,6 +189,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState(() {
                   _isWebViewLoading = false;
                 });
+              },
+              onNavigationRequest: (NavigationRequest request) {
+                if (request.url.toLowerCase().endsWith('.pdf')) {
+                  debugPrint('PDF link interceptado: ${request.url}');
+                  _launchURL(request.url); // Abrir externamente
+                  return NavigationDecision.prevent; // Prevenir navegación en WebView
+                }
+                return NavigationDecision.navigate; // Permitir navegación para el resto
               },
             ),
           );
@@ -623,10 +630,44 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Desarrollado por Dagodev',
-                          style: TextStyle(
-                            color: Color.fromARGB(195, 34, 34, 34),
+                        Text(                          
+                                'Desarrollado por ',
+                                style: TextStyle(
+                                  color: Color.fromARGB(195, 34, 34, 34),
+                                  // Añado un subrayado para que parezca un enlace
+                                ),
+                        ),
+                        TextButton(
+                          onPressed: () => _launchURL('https://t.me/dagodev'),
+                          // Añado un padding mínimo para que no se vea desalineado
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(101, 239, 118, 26), // Fondo sutil
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(15.0), // Esquinas redondeadas
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Dagodev',
+                                style: TextStyle(
+                                  color: Color.fromARGB(195, 34, 34, 34),
+                                  // Añado un subrayado para que parezca un enlace
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.telegram,
+                                color: Color.fromARGB(195, 34, 34, 34),
+                                size: 16,
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -908,27 +949,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           return InkWell(
                             onTap: () {
-                              // ---- ¡Paso 1: Ver si el clic se registra! ----
-                              debugPrint(
-                                '--- ¡InkWell pulsado para la carrera: ${race.name}! ---',
-                              );
                               if (race.registrationLink != null) {
-                                final url = race.registrationLink!;
-                                // Cambio: Verifico si la URL es un PDF
-                                debugPrint('DEBUG: Tapped on link: $url');
-                                if (url.toLowerCase().endsWith('.pdf')) {
-                                  debugPrint(
-                                    'DEBUG: Detected PDF, navigating to viewer...',
-                                  ); // Imprimimos para confirmar
-                                  _launchURL(url);
-                                } else {
-                                  // Comportamiento anterior para enlaces que no son PDF
-                                  _showRaceInWebView(url);
-                                }
+                                // --- LÓGICA SIMPLIFICADA AQUÍ ---
+                                // Siempre abre el enlace inicial en el WebView.
+                                // El NavigationDelegate se encargará de los clics internos.
+                                _showRaceInWebView(race.registrationLink!);
                               } else {
-                                debugPrint(
-                                  'No hay enlace de inscripción disponible para ${race.name}',
-                                );
+                                debugPrint('No se encontró enlace para ${race.name}');
                               }
                             },
                             child: Card(
