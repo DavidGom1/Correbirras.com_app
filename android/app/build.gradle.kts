@@ -23,7 +23,7 @@ val flutterVersionCode = localProperties.getProperty("flutter.versionCode")
 val flutterVersionName = localProperties.getProperty("flutter.versionName")
 
 android {
-    namespace = "com.correbirras.myapp"
+    namespace = "com.correbirras.agenda"
     compileSdkVersion(35)
 
         compileOptions {
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.correbirras.myapp"
+        applicationId = "com.correbirras.agenda"
         minSdkVersion(26)
         targetSdkVersion(35)
         versionCode = flutterVersionCode.toString().toInt()
