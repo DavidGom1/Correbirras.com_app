@@ -1,8 +1,8 @@
-name: myapp
-description: "A new Flutter project."
+name: Correbirras
+description: "Agenda de carreras Correbirras"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.8.0-278.1.beta
@@ -14,7 +14,6 @@ dependencies:
   path_provider: ^2.1.3
   html: ^0.15.4
   url_launcher: ^6.0.0
-  flutter_pdfview: ^1.3.2
 
   cupertino_icons: ^1.0.8
   webview_flutter: ^4.13.0
