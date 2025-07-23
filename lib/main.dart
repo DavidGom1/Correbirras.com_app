@@ -191,12 +191,37 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               onNavigationRequest: (NavigationRequest request) {
+                final String url = request.url.toLowerCase();
+
+                final List<String> socialMediaDomains = [
+                      'facebook.com',
+                      'instagram.com',
+                      'twitter.com',
+                      'x.com', // Por si acaso usan el nuevo dominio de Twitter
+                      'youtube.com',
+                      'linkedin.com',
+                      'tiktok.com',
+                      // Añade aquí cualquier otra red social relevante
+                    ];
+
                 if (request.url.toLowerCase().endsWith('.pdf')) {
                   debugPrint('PDF link interceptado: ${request.url}');
                   _launchURL(request.url); // Abrir externamente
-                  return NavigationDecision.prevent; // Prevenir navegación en WebView
+                  return NavigationDecision
+                      .prevent; // Prevenir navegación en WebView
                 }
-                return NavigationDecision.navigate; // Permitir navegación para el resto
+                
+                // Comprobar si es un enlace de red social
+                for (var domain in socialMediaDomains) {
+                  if (url.contains(domain)) {
+                    debugPrint('Enlace de red social interceptado: $url');
+                    _launchURL(url); // Abrir externamente
+                    return NavigationDecision.prevent; // Prevenir navegación en WebView
+                  }
+                }
+                
+                return NavigationDecision
+                    .navigate; // Permitir navegación para el resto
               },
             ),
           );
@@ -335,16 +360,13 @@ class _MyHomePageState extends State<MyHomePage> {
         final zoneTdElement = tr.querySelector("td[bgcolor]");
 
         String? registrationLink;
-        for (int i = tds.length - 1; i >= 0; i--) {
-          final linkElement = tds[i].querySelector('a[href]');
-          if (linkElement != null) {
-            final href = linkElement.attributes['href'];
-            if (href != null &&
-                !href.startsWith('#') &&
-                (href.startsWith('http://') || href.startsWith('https://'))) {
-              registrationLink = href;
-              break;
-            }
+        final linkElement = tds[1].querySelector('a[href]');
+        if (linkElement != null) {
+          final href = linkElement.attributes['href'];
+          if (href != null &&
+              !href.startsWith('#') &&
+              (href.startsWith('http://') || href.startsWith('https://'))) {
+            registrationLink = href;
           }
         }
 
@@ -396,6 +418,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _allRaces = parsedRaces;
         _applyFilters(basicFilterChanged: true);
       });
+    }
+
+    for (int i = 0; i < 10; i++) {
+      debugPrint('---------------------------------');
+      debugPrint('\n');
+      debugPrint(parsedRaces[i].name);
+      debugPrint(parsedRaces[i].registrationLink);
     }
   }
 
@@ -630,21 +659,27 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(                          
-                                'Desarrollado por ',
-                                style: TextStyle(
-                                  color: Color.fromARGB(195, 34, 34, 34),
-                                  // Añado un subrayado para que parezca un enlace
-                                ),
+                        Text(
+                          'Desarrollado por ',
+                          style: TextStyle(
+                            color: Color.fromARGB(195, 34, 34, 34),
+                            // Añado un subrayado para que parezca un enlace
+                          ),
                         ),
                         TextButton(
                           onPressed: () => _launchURL('https://t.me/dagodev'),
                           // Añado un padding mínimo para que no se vea desalineado
                           style: TextButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(101, 239, 118, 26), // Fondo sutil
+                            backgroundColor: const Color.fromARGB(
+                              101,
+                              239,
+                              118,
+                              26,
+                            ), // Fondo sutil
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(15.0), // Esquinas redondeadas
+                              borderRadius: BorderRadius.circular(
+                                15.0,
+                              ), // Esquinas redondeadas
                             ),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -955,7 +990,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 // El NavigationDelegate se encargará de los clics internos.
                                 _showRaceInWebView(race.registrationLink!);
                               } else {
-                                debugPrint('No se encontró enlace para ${race.name}');
+                                debugPrint(
+                                  'No se encontró enlace para ${race.name}',
+                                );
                               }
                             },
                             child: Card(
