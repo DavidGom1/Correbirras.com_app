@@ -194,15 +194,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 final String url = request.url.toLowerCase();
 
                 final List<String> socialMediaDomains = [
-                      'facebook.com',
-                      'instagram.com',
-                      'twitter.com',
-                      'x.com', // Por si acaso usan el nuevo dominio de Twitter
-                      'youtube.com',
-                      'linkedin.com',
-                      'tiktok.com',
-                      // Añade aquí cualquier otra red social relevante
-                    ];
+                  'facebook.com',
+                  'instagram.com',
+                  'twitter.com',
+                  'x.com', // Por si acaso usan el nuevo dominio de Twitter
+                  'youtube.com',
+                  'linkedin.com',
+                  'tiktok.com',
+                  // Añade aquí cualquier otra red social relevante
+                ];
 
                 if (request.url.toLowerCase().endsWith('.pdf')) {
                   debugPrint('PDF link interceptado: ${request.url}');
@@ -210,16 +210,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   return NavigationDecision
                       .prevent; // Prevenir navegación en WebView
                 }
-                
+
                 // Comprobar si es un enlace de red social
                 for (var domain in socialMediaDomains) {
                   if (url.contains(domain)) {
                     debugPrint('Enlace de red social interceptado: $url');
                     _launchURL(url); // Abrir externamente
-                    return NavigationDecision.prevent; // Prevenir navegación en WebView
+                    _hideWebView();
+                    return NavigationDecision
+                        .prevent; // Prevenir navegación en WebView
                   }
                 }
-                
+
                 return NavigationDecision
                     .navigate; // Permitir navegación para el resto
               },
