@@ -1222,7 +1222,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             : Icons.favorite_border,
                                         color:
                                             race.isFavorite
-                                                ? Colors.red
+                                                ? Color.fromRGBO(239, 120, 26, 1)
                                                 : Colors.grey,
                                         size: 30,
                                       ),
