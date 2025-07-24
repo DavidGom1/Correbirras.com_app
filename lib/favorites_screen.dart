@@ -14,11 +14,11 @@ class FavoritesScreen extends StatefulWidget {
 
 
   const FavoritesScreen({
-    Key? key,
+    super.key,
     required this.allRaces,
     required this.toggleFavorite, // Añade al constructor
     required this.showRaceInWebView, // Añade al constructor
-  }) : super(key: key);
+  });
 
   @override
   _FavoritesScreenState createState() => _FavoritesScreenState();
@@ -125,7 +125,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 return InkWell(
                    onTap: () {
                      if (race.registrationLink?.isNotEmpty ?? false) {
-                       _handleShowRaceInWebView(race.registrationLink!); // Llama a la función recibida
+                       // 1. Llama a la función para mostrar la WebView en la pantalla de abajo.
+                       _handleShowRaceInWebView(race.registrationLink!);
+                       // 2. Cierra esta pantalla para revelar la pantalla principal con la WebView.
+                       Navigator.pop(context);
                      } else {
                        debugPrint('No se encontró enlace para ${race.name}');
                      }
@@ -142,7 +145,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(cardPadding),
                        child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                          children: [
                            Expanded(
                              child: Column(
