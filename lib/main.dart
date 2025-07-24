@@ -6,6 +6,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:Correbirras/favorites_screen.dart'; // Asegúrate de que la ruta sea correcta
+
 
 const List<String> meseses = [
   "enero",
@@ -41,6 +44,7 @@ class Race {
   final String? terrain;
   final List<int> distances;
   final String? registrationLink;
+  bool isFavorite = false;
 
   Race({
     required this.month,
@@ -229,6 +233,36 @@ class _MyHomePageState extends State<MyHomePage> {
           );
   }
 
+  Future<void> _toggleFavorite(Race race) async {
+    // 1. Obtenemos la instancia de SharedPreferences
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // 2. Leemos la lista actual de favoritos (si no existe, creamos una vacía)
+    final List<String> favoriteRaces =
+        prefs.getStringList('favoriteRaces') ?? [];
+
+    // Invertimos el estado en el objeto actual para la UI inmediata
+    setState(() {
+      race.isFavorite = !race.isFavorite;
+    });
+
+    // 3. Modificamos la lista
+    if (race.isFavorite) {
+      // Si ahora es favorito, lo añadimos a la lista si no estaba ya
+      if (!favoriteRaces.contains(race.name)) {
+        favoriteRaces.add(race.name);
+      }
+    } else {
+      // Si ya no es favorito, lo eliminamos de la lista
+      favoriteRaces.remove(race.name);
+    }
+
+    // 4. Guardamos la lista actualizada en SharedPreferences
+    await prefs.setStringList('favoriteRaces', favoriteRaces);
+
+    debugPrint("Favoritos guardados: $favoriteRaces");
+  }
+
   // Function to send email
   Future<void> _sendEmail(String emailAddress) async {
     final Uri emailLaunchUri = Uri(scheme: 'mailto', path: emailAddress);
@@ -331,7 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return distances;
   }
 
-  void _parseHtmlAndExtractRaces(String htmlContent) {
+  Future<void> _parseHtmlAndExtractRaces(String htmlContent) async {
     final document = parse(htmlContent);
     final table = document.querySelector("table");
 
@@ -412,6 +446,18 @@ class _MyHomePageState extends State<MyHomePage> {
             registrationLink: registrationLink,
           ),
         );
+      }
+    }
+
+    // 1. Cargar los nombres de las carreras favoritas
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> favoriteRaceNames =
+        prefs.getStringList('favoriteRaces') ?? [];
+
+    // 2. Sincronizar el estado `isFavorite`
+    for (var race in parsedRaces) {
+      if (favoriteRaceNames.contains(race.name)) {
+        race.isFavorite = true;
       }
     }
 
@@ -596,13 +642,36 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: ListView(
                       padding: EdgeInsets.only(top: 50),
                       children: <Widget>[
+                        // ListTile para "Favoritos"
+                        ListTile(
+                          leading: Icon(Icons.favorite), // Icono de favorito
+                          title: const Text('Favoritos'),
+                          onTap: () {
+                            Navigator.pop(context); // Cierra el drawer
+                            // Navega a la pantalla de favoritos, pasando la lista _allRaces
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => // PASAR LAS FUNCIONES AQUÍ
+                                        FavoritesScreen(
+                                      allRaces: _allRaces,
+                                      toggleFavorite:
+                                          _toggleFavorite, // Pasar la función
+                                      showRaceInWebView:
+                                          _showRaceInWebView, // Pasar la función
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
                         ListTile(
                           leading: Icon(Icons.web),
                           title: const Text('Ver la pagina correbirras.com'),
                           onTap: () {
                             Navigator.pop(context); // Close the drawer
                             _launchURL(
-                              'https://www.correbirras.com/Agenda_carreras.html',
+                              'https://www.correbirras.com',
                             ); // Reusing the webview function
                           },
                         ),
@@ -975,21 +1044,25 @@ class _MyHomePageState extends State<MyHomePage> {
                         const double cardWidthForGridReference = 350.0;
 
                         Widget buildRaceItemWidget(Race race, bool isGridView) {
-                          double cardHorizontalMargin = isGridView ? 8.0 : 16.0;
-                          double cardPadding = isGridView ? 12.0 : 16.0;
-                          int titleMaxLines = isGridView ? 2 : 1;
-                          double titleFontSize = isGridView ? 15.0 : 16.0;
-                          final TextStyle resultRace = TextStyle(
+                          // --- Variables de configuración ---
+                          final double cardHorizontalMargin =
+                              isGridView ? 8.0 : 16.0;
+                          final double cardPadding = isGridView ? 12.0 : 16.0;
+                          final int titleMaxLines = isGridView ? 2 : 1;
+                          final double titleFontSize = isGridView ? 15.0 : 16.0;
+                          final TextStyle resultRaceStyle = TextStyle(
                             fontSize: 15,
                             color: Colors.grey[800],
+                            fontWeight: FontWeight.w400,
+                          );
+                          final TextStyle labelStyle = const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           );
 
                           return InkWell(
                             onTap: () {
-                              if (race.registrationLink != null) {
-                                // --- LÓGICA SIMPLIFICADA AQUÍ ---
-                                // Siempre abre el enlace inicial en el WebView.
-                                // El NavigationDelegate se encargará de los clics internos.
+                              if (race.registrationLink?.isNotEmpty ?? false) {
                                 _showRaceInWebView(race.registrationLink!);
                               } else {
                                 debugPrint(
@@ -1008,140 +1081,155 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               child: Padding(
                                 padding: EdgeInsets.all(cardPadding),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                // AHORA: Usamos una Row principal para separar el contenido y el icono
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            // Added Column for name and date
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                race.name,
-                                                maxLines: titleMaxLines,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: titleFontSize,
+                                    // 1. Contenido principal que se expande
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Nombre de la carrera
+                                          Text(
+                                            race.name,
+                                            maxLines: titleMaxLines,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: titleFontSize,
+                                            ),
+                                          ),
+
+                                          // Separador
+                                          const SizedBox(height: 8.0),
+
+                                          // Fecha
+                                          if (race.date?.isNotEmpty ?? false)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  text: 'Fecha: ',
+                                                  style: labelStyle,
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text:
+                                                          '${race.date} - ${race.month}', // Asumiendo que race.month ya viene formateado
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                              if (race.date != null &&
-                                                  race
-                                                      .date!
-                                                      .isNotEmpty) // Display date
-                                                Container(
-                                                  margin: EdgeInsets.only(
-                                                    top: 4.0,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Text(
-                                                        'Fecha: ',
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        '${race.date!} - ${race.month[0].toUpperCase()}${race.month.substring(1).toLowerCase()}',
-                                                        style: resultRace,
-                                                      ),
-                                                    ],
-                                                  ),
+                                            ),
+
+                                          // Zona
+                                          if (race.zone?.isNotEmpty ?? false)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  text: 'Zona: ',
+                                                  style: labelStyle,
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text:
+                                                          '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
                                                 ),
-                                            ],
-                                          ),
-                                        ),
-                                        /*if (race.registrationLink != null)
-                                                IconButton(
-                                                  icon: const Icon(Icons.launch),
-                                                  iconSize: 20.0,
-                                                  constraints: BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                  visualDensity:
-                                                      VisualDensity.compact,
-                                                  onPressed: () =>
-                                                      _showRaceInWebView(
-                                                          race.registrationLink!),
-                                                  tooltip:
-                                                      'Abrir enlace de inscripción',
-                                                ),*/
-                                      ],
+                                              ),
+                                            ),
+
+                                          // Tipo
+                                          if (race.type?.isNotEmpty ?? false)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  text: 'Tipo: ',
+                                                  style: labelStyle,
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text: race.type,
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                          // Terreno
+                                          if (race.terrain?.isNotEmpty ?? false)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  text: 'Terreno: ',
+                                                  style: labelStyle,
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text: race.terrain,
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                          // Distancias
+                                          if (race.distances.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  text: 'Distancias: ',
+                                                  style: labelStyle,
+                                                  children: <TextSpan>[
+                                                    TextSpan(
+                                                      text:
+                                                          '${race.distances.join('m, ')}m',
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(height: 0),
-                                    if (race.zone != null)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Zona: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                            style: resultRace,
-                                          ),
-                                        ],
+
+                                    // Separador horizontal
+                                    const SizedBox(width: 8.0),
+
+                                    // 2. Icono de favorito que se ajusta a su tamaño
+                                    IconButton(
+                                      icon: Icon(
+                                        race.isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color:
+                                            race.isFavorite
+                                                ? Colors.red
+                                                : Colors.grey,
+                                        size: 30,
                                       ),
-                                    if (race.type != null)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Tipo: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${race.type}',
-                                            style: resultRace,
-                                          ),
-                                        ],
-                                      ),
-                                    if (race.terrain != null)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Terreno: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${race.terrain}',
-                                            style: resultRace,
-                                          ),
-                                        ],
-                                      ),
-                                    if (race.distances.isNotEmpty)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Distancias: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${race.distances.join('m, ')}m',
-                                            style: resultRace,
-                                          ),
-                                        ],
-                                      ),
-                                    if (isGridView) const Spacer(),
+                                      onPressed: () {
+                                        _toggleFavorite(race);
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
