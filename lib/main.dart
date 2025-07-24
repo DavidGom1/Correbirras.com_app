@@ -802,7 +802,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              endDrawer: Drawer(
+              endDrawer: _isWebViewVisible ? null :  Drawer(
                 child: Material(
                   color: Colors.white,
                   child: ListView(
