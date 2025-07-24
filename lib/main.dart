@@ -7,8 +7,8 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:Correbirras/favorites_screen.dart'; // Asegúrate de que la ruta sea correcta
-
+import 'package:Correbirras/favorites_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 const List<String> meseses = [
   "enero",
@@ -139,10 +139,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isLoading = true;
   List<Race> _allRaces = [];
   List<Race> _filteredRaces = [];
-  String _selectedMonth = "all";
-  String _selectedZone = "all";
-  String _selectedType = "all";
-  String _selectedTerrain = "all";
+  String? _selectedMonth;
+  String? _selectedZone;
+  String? _selectedType;
+  String? _selectedTerrain;
 
   double _filteredMinDistance = 0;
   double _filteredMaxDistance = 0;
@@ -467,26 +467,17 @@ class _MyHomePageState extends State<MyHomePage> {
         _applyFilters(basicFilterChanged: true);
       });
     }
-
-    for (int i = 0; i < 10; i++) {
-      debugPrint('---------------------------------');
-      debugPrint('\n');
-      debugPrint(parsedRaces[i].name);
-      debugPrint(parsedRaces[i].registrationLink);
-    }
   }
 
   void _applyFilters({bool basicFilterChanged = false}) {
     List<Race> basicFilteredRaces =
         _allRaces.where((race) {
           final matchMonth =
-              _selectedMonth == "all" || race.month == _selectedMonth;
-          final matchZone =
-              _selectedZone == "all" || race.zone == _selectedZone;
-          final matchType =
-              _selectedType == "all" || race.type == _selectedType;
+              _selectedMonth == null || race.month == _selectedMonth;
+          final matchZone = _selectedZone == null || race.zone == _selectedZone;
+          final matchType = _selectedType == null || race.type == _selectedType;
           final matchTerrain =
-              _selectedTerrain == "all" || race.terrain == _selectedTerrain;
+              _selectedTerrain == null || race.terrain == _selectedTerrain;
           return matchMonth && matchZone && matchType && matchTerrain;
         }).toList();
 
@@ -542,17 +533,30 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _resetAllFilters() {
+    setState(() {
+      // Restablece todos los filtros de tipo Dropdown a null
+      _selectedMonth = null;
+      _selectedZone = null;
+      _selectedType = null;
+      _selectedTerrain = null;
+
+      // Llama a _applyFilters con 'basicFilterChanged: true'.
+      // Esto es CLAVE, porque recalculará el rango de distancias
+      // y lo reiniciará automáticamente.
+      _applyFilters(basicFilterChanged: true);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<String> availableMonths = ["all", ...meseses];
-    final List<String> availableZones = ["all", ...zonascolores.keys];
+    final List<String> availableMonths = [...meseses];
+    final List<String> availableZones = [...zonascolores.keys];
     final List<String> availableTypes = [
-      "all",
       ..._allRaces.map((r) => r.type).whereType<String>().toSet().toList()
         ..sort(),
     ];
     final List<String> availableTerrains = [
-      "all",
       ..._allRaces.map((r) => r.terrain).whereType<String>().toSet().toList()
         ..sort(),
     ];
@@ -702,21 +706,23 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          icon: Image.asset(
-                            'assets/images/Facebook_2.png',
+                          icon: SvgPicture.asset(
+                            'assets/images/facebook.svg',
                             width: 40,
                             height: 40,
-                          ), // Assuming you have facebook_icon.png in assets/images
+                            color: Color.fromRGBO(239, 120, 26, 1),
+                          ), 
                           onPressed: () {
                             _launchURL('https://www.facebook.com/correbirras');
                           },
                         ),
                         SizedBox(width: 20),
                         IconButton(
-                          icon: Image.asset(
-                            'assets/images/Instagram_2.png',
-                            width: 40,
-                            height: 40,
+                          icon: SvgPicture.asset(
+                            'assets/images/instagram.svg',
+                            width: 30,
+                            height: 30,
+                            color: Color.fromRGBO(239, 120, 26, 1),
                           ), // Assuming you have instagram_icon.png in assets/images
                           onPressed: () {
                             _launchURL('https://www.instagram.com/correbirras');
@@ -801,85 +807,82 @@ class _MyHomePageState extends State<MyHomePage> {
                     ListTile(
                       title: DropdownButton<String>(
                         isExpanded: true,
+                        hint: const Text("Mes"),
                         value: _selectedMonth,
                         onChanged: (v) {
-                          setState(() => _selectedMonth = v!);
+                          setState(() {
+                            _selectedMonth =
+                                v; // 'v' será null si no se elige nada, o un mes si se elige.
+                          });
                           _applyFilters(basicFilterChanged: true);
                         },
                         items:
-                            availableMonths
-                                .map(
-                                  (m) => DropdownMenuItem(
-                                    value: m,
-                                    child: Text(
-                                      m == "all"
-                                          ? "Mes"
-                                          : m[0].toUpperCase() + m.substring(1),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                            availableMonths.map((m) {
+                              // Asumimos que availableMonths es ahora ['enero', 'febrero', ...]
+                              // Ya no contiene "all".
+                              return DropdownMenuItem(
+                                value: m,
+                                child: Text(
+                                  m[0].toUpperCase() + m.substring(1),
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ),
                     ListTile(
                       title: DropdownButton<String>(
                         isExpanded: true,
+                        hint: const Text("Zona"),
                         value: _selectedZone,
                         onChanged: (v) {
-                          setState(() => _selectedZone = v!);
+                          setState(() {
+                            _selectedZone = v;
+                          });
                           _applyFilters(basicFilterChanged: true);
                         },
                         items:
-                            availableZones
-                                .map(
-                                  (z) => DropdownMenuItem(
-                                    value: z,
-                                    child: Text(
-                                      z == "all"
-                                          ? "Zona"
-                                          : z[0].toUpperCase() + z.substring(1),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                            availableZones.map((z) {
+                              return DropdownMenuItem(
+                                value: z,
+                                child: Text(
+                                  z[0].toUpperCase() + z.substring(1),
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ),
                     ListTile(
                       title: DropdownButton<String>(
                         isExpanded: true,
+                        hint: const Text("Tipo"),
                         value: _selectedType,
                         onChanged: (v) {
-                          setState(() => _selectedType = v!);
+                          setState(() {
+                            _selectedType = v;
+                          });
                           _applyFilters(basicFilterChanged: true);
                         },
                         items:
-                            availableTypes
-                                .map(
-                                  (t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text(t == "all" ? "Tipo" : t),
-                                  ),
-                                )
-                                .toList(),
+                            availableTypes.map((t) {
+                              return DropdownMenuItem(value: t, child: Text(t));
+                            }).toList(),
                       ),
                     ),
                     ListTile(
                       title: DropdownButton<String>(
                         isExpanded: true,
+                        hint: const Text("Terreno"),
                         value: _selectedTerrain,
                         onChanged: (v) {
-                          setState(() => _selectedTerrain = v!);
+                          setState(() {
+                            _selectedTerrain = v;
+                          });
                           _applyFilters(basicFilterChanged: true);
                         },
                         items:
-                            availableTerrains
-                                .map(
-                                  (t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text(t == "all" ? "Terreno" : t),
-                                  ),
-                                )
-                                .toList(),
+                            availableTerrains.map((t) {
+                              return DropdownMenuItem(value: t, child: Text(t));
+                            }).toList(),
                       ),
                     ),
                     ListTile(
@@ -994,10 +997,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                   return null;
                                 }),
                               ),
-                              onPressed:
-                                  () => _applyFilters(basicFilterChanged: true),
+                              onPressed: _resetAllFilters,
                               child: const Text(
-                                'Restablecer distancia',
+                                'Restablecer filtros',
                                 style: TextStyle(fontSize: 16),
                               ),
                             ),
@@ -1222,7 +1224,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                             : Icons.favorite_border,
                                         color:
                                             race.isFavorite
-                                                ? Color.fromRGBO(239, 120, 26, 1)
+                                                ? Color.fromRGBO(
+                                                  239,
+                                                  120,
+                                                  26,
+                                                  1,
+                                                )
                                                 : Colors.grey,
                                         size: 30,
                                       ),
