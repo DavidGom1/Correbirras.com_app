@@ -1010,11 +1010,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                     Color?
                                   >((Set<WidgetState> states) {
                                     if (states.contains(WidgetState.hovered)) {
-                                      return Colors.white.withValues(alpha: 0.08);
+                                      return Colors.white.withValues(
+                                        alpha: 0.08,
+                                      );
                                     }
                                     if (states.contains(WidgetState.focused) ||
                                         states.contains(WidgetState.pressed)) {
-                                      return Colors.white.withValues(alpha: 0.24);
+                                      return Colors.white.withValues(
+                                        alpha: 0.24,
+                                      );
                                     }
                                     return null;
                                   }),
