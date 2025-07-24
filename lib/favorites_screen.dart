@@ -244,7 +244,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                            IconButton(
                              icon: Icon(
                                Icons.favorite,
-                               color: Colors.red,
+                               color: Color.fromRGBO(239, 120, 26, 1),
                                size: 30,
                              ),
                              onPressed: () {
