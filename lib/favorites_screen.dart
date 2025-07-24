@@ -21,10 +21,10 @@ class FavoritesScreen extends StatefulWidget {
   });
 
   @override
-  _FavoritesScreenState createState() => _FavoritesScreenState();
+  FavoritesScreenState createState() => FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
+class FavoritesScreenState extends State<FavoritesScreen> {
   List<Race> _favoriteRaces = [];
 
   @override
@@ -145,7 +145,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(cardPadding),
                        child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                          children: [
                            Expanded(
                              child: Column(
