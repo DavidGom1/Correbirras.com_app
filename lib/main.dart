@@ -43,7 +43,7 @@ class Race {
   final String? zone;
   final String? type;
   final String? terrain;
-  final List<int> distances;
+  final List<double> distances;
   final String? registrationLink;
   bool isFavorite = false;
 
@@ -355,12 +355,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  List<int> _getDistances(String textContent) {
+  List<double> _getDistances(String textContent) {
     final RegExp regExp = RegExp(r"(\d+)\s*m", caseSensitive: false);
-    List<int> distances = [];
+    List<double> distances = [];
     for (final match in regExp.allMatches(textContent.replaceAll('.', ''))) {
       if (match.group(1) != null) {
-        distances.add(int.parse(match.group(1)!));
+        distances.add(
+          (double.parse(match.group(1)!) / 100.0).truncateToDouble() / 10.0,
+        );
       }
     }
     return distances;
@@ -395,7 +397,6 @@ class _MyHomePageState extends State<MyHomePage> {
         final typeImgElement = tds[2].querySelector("img[alt]");
         final terrainImgElement = tds[3].querySelector("img[alt]");
         final zoneTdElement = tr.querySelector("td[bgcolor]");
-
         String? registrationLink;
         final linkElement = tds[1].querySelector('a[href]');
         if (linkElement != null) {
@@ -434,7 +435,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         }
         zone = foundColorKey;
-        final distances = _getDistances(tr.text);
+        final distances = _getDistances(tds[5].text);
         parsedRaces.add(
           Race(
             month: currentMonth,
@@ -1285,27 +1286,33 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
 
                                               // Distancias
-                                              if (race.distances.isNotEmpty)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 4.0,
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4.0,
+                                                ),
+                                                child: Text.rich(
+                                                  TextSpan(
+                                                    text: 'Distancia (km): ',
+                                                    style: labelStyle,
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text:
+                                                            race
+                                                                    .distances
+                                                                    .isNotEmpty
+                                                                ? (() {
+                                                                  race.distances
+                                                                      .sort();
+                                                                  return race.distances.join(', ').replaceAll('.0', '');
+                                                                })()
+                                                                : 'No disponible',
+
+                                                        style: resultRaceStyle,
                                                       ),
-                                                  child: Text.rich(
-                                                    TextSpan(
-                                                      text: 'Distancias: ',
-                                                      style: labelStyle,
-                                                      children: <TextSpan>[
-                                                        TextSpan(
-                                                          text:
-                                                              '${race.distances.join('m, ')}m',
-                                                          style:
-                                                              resultRaceStyle,
-                                                        ),
-                                                      ],
-                                                    ),
+                                                    ],
                                                   ),
                                                 ),
+                                              ),
                                             ],
                                           ),
                                         ),
