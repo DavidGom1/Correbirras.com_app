@@ -1164,7 +1164,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: EdgeInsets.all(cardPadding),
                                   // AHORA: Usamos una Row principal para separar el contenido y el icono
-                                  child: IntrinsicHeight(
                                     child: Row(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -1353,7 +1352,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ],
                                     ),
                                   ),
-                                ),
                               ),
                             );
                           }
