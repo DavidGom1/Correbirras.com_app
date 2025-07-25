@@ -95,132 +95,137 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 8,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min, // Important for height
-                  children: [
-                    Text(
-                      race.name,
-                      maxLines: titleMaxLines,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: titleFontSize,
-                      ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    if (race.date?.isNotEmpty ?? false)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Fecha: ',
-                            style: labelStyle,
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: '${race.date} - ${race.month}',
-                                style: resultRaceStyle,
-                              ),
-                            ],
-                          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Important for height
+                    children: [
+                      Text(
+                        race.name,
+                        maxLines: titleMaxLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: titleFontSize,
                         ),
                       ),
-                    if (race.zone?.isNotEmpty ?? false)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Zona: ',
-                            style: labelStyle,
-                            children: <TextSpan>[
-                              TextSpan(
-                                text:
-                                    '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                style: resultRaceStyle,
-                              ),
-                            ],
+                      const SizedBox(height: 8.0),
+                      if (race.date?.isNotEmpty ?? false)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Fecha: ',
+                              style: labelStyle,
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: '${race.date} - ${race.month}',
+                                  style: resultRaceStyle,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    if (race.type?.isNotEmpty ?? false)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Tipo: ',
-                            style: labelStyle,
-                            children: <TextSpan>[
-                              TextSpan(text: race.type, style: resultRaceStyle),
-                            ],
+                      if (race.zone?.isNotEmpty ?? false)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Zona: ',
+                              style: labelStyle,
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text:
+                                      '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                  style: resultRaceStyle,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    if (race.terrain?.isNotEmpty ?? false)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Terreno: ',
-                            style: labelStyle,
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: race.terrain,
-                                style: resultRaceStyle,
-                              ),
-                            ],
+                      if (race.type?.isNotEmpty ?? false)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Tipo: ',
+                              style: labelStyle,
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: race.type,
+                                  style: resultRaceStyle,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    if (race.distances.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Distancias: ',
-                            style: labelStyle,
-                            children: <TextSpan>[
-                              TextSpan(
-                                text: '${race.distances.join('m, ')}m',
-                                style: resultRaceStyle,
-                              ),
-                            ],
+                      if (race.terrain?.isNotEmpty ?? false)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Terreno: ',
+                              style: labelStyle,
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: race.terrain,
+                                  style: resultRaceStyle,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                      if (race.distances.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Distancias: ',
+                              style: labelStyle,
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: '${race.distances.join('m, ')}m',
+                                  style: resultRaceStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const VerticalDivider(),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.favorite,
-                        color: Color.fromRGBO(239, 120, 26, 1),
-                        size: 30,
+                const VerticalDivider(),
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.favorite,
+                          color: Color.fromRGBO(239, 120, 26, 1),
+                          size: 30,
+                        ),
+                        onPressed: () {
+                          _handleToggleFavorite(race);
+                        },
                       ),
-                      onPressed: () {
-                        _handleToggleFavorite(race);
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.share, color: Colors.grey, size: 30),
-                      onPressed: () {
-                        _handleShareRace(race);
-                      },
-                    ),
-                  ],
+                      IconButton(
+                        icon: Icon(Icons.share, color: Colors.grey, size: 30),
+                        onPressed: () {
+                          _handleShareRace(race);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
