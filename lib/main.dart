@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/favorites_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:share_plus/share_plus.dart';
 
 const List<String> meseses = [
   "enero",
@@ -526,6 +527,16 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _handleShareRace(Race race) {
+    if (race.registrationLink?.isNotEmpty ?? false) {
+      Share.share(
+        '¡Échale un vistazo a esta carrera: ${race.name}!${race.registrationLink}',
+      );
+    } else {
+      Share.share('¡Échale un vistazo a esta carrera: ${race.name}!');
+    }
+  }
+
   void _hideWebView() {
     _controller.loadRequest(Uri.parse('about:blank'));
     setState(() {
@@ -668,6 +679,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             _toggleFavorite, // Pasar la función
                                         showRaceInWebView:
                                             _showRaceInWebView, // Pasar la función
+                                        handleShareRace: _handleShareRace,
                                       ),
                                 ),
                               );
@@ -802,241 +814,278 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              endDrawer: _isWebViewVisible ? null :  Drawer(
-                child: Material(
-                  color: Colors.white,
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: <Widget>[
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(239, 120, 26, 1),
-                        ),
-                        child: Center(
-                          child: Text('Filtros', style: drawersTextStyle),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      ListTile(
-                        title: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text("Mes"),
-                          value: _selectedMonth,
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedMonth =
-                                  v; // 'v' será null si no se elige nada, o un mes si se elige.
-                            });
-                            _applyFilters(basicFilterChanged: true);
-                          },
-                          items:
-                              availableMonths.map((m) {
-                                // Asumimos que availableMonths es ahora ['enero', 'febrero', ...]
-                                // Ya no contiene "all".
-                                return DropdownMenuItem(
-                                  value: m,
+              endDrawer:
+                  _isWebViewVisible
+                      ? null
+                      : Drawer(
+                        child: Material(
+                          color: Colors.white,
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: <Widget>[
+                              Container(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                decoration: BoxDecoration(
+                                  color: Color.fromRGBO(239, 120, 26, 1),
+                                ),
+                                child: Center(
                                   child: Text(
-                                    m[0].toUpperCase() + m.substring(1),
+                                    'Filtros',
+                                    style: drawersTextStyle,
                                   ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                      ListTile(
-                        title: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text("Zona"),
-                          value: _selectedZone,
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedZone = v;
-                            });
-                            _applyFilters(basicFilterChanged: true);
-                          },
-                          items:
-                              availableZones.map((z) {
-                                return DropdownMenuItem(
-                                  value: z,
-                                  child: Text(
-                                    z[0].toUpperCase() + z.substring(1),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                      ListTile(
-                        title: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text("Tipo"),
-                          value: _selectedType,
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedType = v;
-                            });
-                            _applyFilters(basicFilterChanged: true);
-                          },
-                          items:
-                              availableTypes.map((t) {
-                                return DropdownMenuItem(
-                                  value: t,
-                                  child: Text(t),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                      ListTile(
-                        title: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text("Terreno"),
-                          value: _selectedTerrain,
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedTerrain = v;
-                            });
-                            _applyFilters(basicFilterChanged: true);
-                          },
-                          items:
-                              availableTerrains.map((t) {
-                                return DropdownMenuItem(
-                                  value: t,
-                                  child: Text(t),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-                      ListTile(
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Distancia (metros)'),
-                            RangeSlider(
-                              values: _selectedDistanceRange,
-                              min: _filteredMinDistance,
-                              max:
-                                  _filteredMaxDistance > _filteredMinDistance
-                                      ? _filteredMaxDistance
-                                      : _filteredMinDistance + 1,
-                              divisions:
-                                  (_filteredMaxDistance > _filteredMinDistance)
-                                      ? ((_filteredMaxDistance -
-                                                  _filteredMinDistance) /
-                                              100)
-                                          .round()
-                                          .clamp(1, 1000)
-                                      : null,
-                              labels: RangeLabels(
-                                _selectedDistanceRange.start.round().toString(),
-                                _selectedDistanceRange.end.round().toString(),
-                              ),
-                              activeColor: Color.fromRGBO(239, 120, 26, 1),
-                              inactiveColor: Colors.grey,
-                              onChanged:
-                                  (values) => setState(
-                                    () => _selectedDistanceRange = values,
-                                  ),
-                              onChangeEnd:
-                                  (values) =>
-                                      _applyFilters(basicFilterChanged: false),
-                            ),
-                            Container(
-                              padding: EdgeInsets.only(bottom: 10),
-                              child: Center(
-                                child: Text(
-                                  "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
                                 ),
                               ),
-                            ),
-                            Align(
-                              alignment: Alignment.center,
-                              child: TextButton(
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.resolveWith<Color?>((
-                                        Set<WidgetState> states,
-                                      ) {
-                                        if (states.contains(
-                                          WidgetState.pressed,
-                                        )) {
-                                          return Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withValues(alpha: 0.8);
-                                        }
-                                        if (states.contains(
-                                          WidgetState.hovered,
-                                        )) {
-                                          return Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withValues(alpha: 0.9);
-                                        }
-                                        return Color.fromRGBO(239, 120, 26, 1);
-                                      }),
-                                  foregroundColor:
-                                      WidgetStateProperty.resolveWith<Color?>((
-                                        Set<WidgetState> states,
-                                      ) {
-                                        return Colors.white;
-                                      }),
-                                  shape: WidgetStateProperty.all<
-                                    RoundedRectangleBorder
-                                  >(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18.0),
-                                    ),
-                                  ),
-                                  padding: WidgetStateProperty.all<EdgeInsets>(
-                                    const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  elevation: WidgetStateProperty.resolveWith<
-                                    double?
-                                  >((Set<WidgetState> states) {
-                                    if (states.contains(WidgetState.pressed)) {
-                                      return 2.0;
-                                    }
-                                    return 5.0;
-                                  }),
-                                  textStyle: WidgetStateProperty.all<TextStyle>(
-                                    const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  overlayColor: WidgetStateProperty.resolveWith<
-                                    Color?
-                                  >((Set<WidgetState> states) {
-                                    if (states.contains(WidgetState.hovered)) {
-                                      return Colors.white.withValues(
-                                        alpha: 0.08,
-                                      );
-                                    }
-                                    if (states.contains(WidgetState.focused) ||
-                                        states.contains(WidgetState.pressed)) {
-                                      return Colors.white.withValues(
-                                        alpha: 0.24,
-                                      );
-                                    }
-                                    return null;
-                                  }),
-                                ),
-                                onPressed: _resetAllFilters,
-                                child: const Text(
-                                  'Restablecer filtros',
-                                  style: TextStyle(fontSize: 16),
+                              SizedBox(height: 20),
+                              ListTile(
+                                title: DropdownButton<String>(
+                                  isExpanded: true,
+                                  hint: const Text("Mes"),
+                                  value: _selectedMonth,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _selectedMonth =
+                                          v; // 'v' será null si no se elige nada, o un mes si se elige.
+                                    });
+                                    _applyFilters(basicFilterChanged: true);
+                                  },
+                                  items:
+                                      availableMonths.map((m) {
+                                        // Asumimos que availableMonths es ahora ['enero', 'febrero', ...]
+                                        // Ya no contiene "all".
+                                        return DropdownMenuItem(
+                                          value: m,
+                                          child: Text(
+                                            m[0].toUpperCase() + m.substring(1),
+                                          ),
+                                        );
+                                      }).toList(),
                                 ),
                               ),
-                            ),
-                          ],
+                              ListTile(
+                                title: DropdownButton<String>(
+                                  isExpanded: true,
+                                  hint: const Text("Zona"),
+                                  value: _selectedZone,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _selectedZone = v;
+                                    });
+                                    _applyFilters(basicFilterChanged: true);
+                                  },
+                                  items:
+                                      availableZones.map((z) {
+                                        return DropdownMenuItem(
+                                          value: z,
+                                          child: Text(
+                                            z[0].toUpperCase() + z.substring(1),
+                                          ),
+                                        );
+                                      }).toList(),
+                                ),
+                              ),
+                              ListTile(
+                                title: DropdownButton<String>(
+                                  isExpanded: true,
+                                  hint: const Text("Tipo"),
+                                  value: _selectedType,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _selectedType = v;
+                                    });
+                                    _applyFilters(basicFilterChanged: true);
+                                  },
+                                  items:
+                                      availableTypes.map((t) {
+                                        return DropdownMenuItem(
+                                          value: t,
+                                          child: Text(t),
+                                        );
+                                      }).toList(),
+                                ),
+                              ),
+                              ListTile(
+                                title: DropdownButton<String>(
+                                  isExpanded: true,
+                                  hint: const Text("Terreno"),
+                                  value: _selectedTerrain,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _selectedTerrain = v;
+                                    });
+                                    _applyFilters(basicFilterChanged: true);
+                                  },
+                                  items:
+                                      availableTerrains.map((t) {
+                                        return DropdownMenuItem(
+                                          value: t,
+                                          child: Text(t),
+                                        );
+                                      }).toList(),
+                                ),
+                              ),
+                              ListTile(
+                                title: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Distancia (metros)'),
+                                    RangeSlider(
+                                      values: _selectedDistanceRange,
+                                      min: _filteredMinDistance,
+                                      max:
+                                          _filteredMaxDistance >
+                                                  _filteredMinDistance
+                                              ? _filteredMaxDistance
+                                              : _filteredMinDistance + 1,
+                                      divisions:
+                                          (_filteredMaxDistance >
+                                                  _filteredMinDistance)
+                                              ? ((_filteredMaxDistance -
+                                                          _filteredMinDistance) /
+                                                      100)
+                                                  .round()
+                                                  .clamp(1, 1000)
+                                              : null,
+                                      labels: RangeLabels(
+                                        _selectedDistanceRange.start
+                                            .round()
+                                            .toString(),
+                                        _selectedDistanceRange.end
+                                            .round()
+                                            .toString(),
+                                      ),
+                                      activeColor: Color.fromRGBO(
+                                        239,
+                                        120,
+                                        26,
+                                        1,
+                                      ),
+                                      inactiveColor: Colors.grey,
+                                      onChanged:
+                                          (values) => setState(
+                                            () =>
+                                                _selectedDistanceRange = values,
+                                          ),
+                                      onChangeEnd:
+                                          (values) => _applyFilters(
+                                            basicFilterChanged: false,
+                                          ),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.only(bottom: 10),
+                                      child: Center(
+                                        child: Text(
+                                          "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
+                                        ),
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.center,
+                                      child: TextButton(
+                                        style: ButtonStyle(
+                                          backgroundColor:
+                                              WidgetStateProperty.resolveWith<
+                                                Color?
+                                              >((Set<WidgetState> states) {
+                                                if (states.contains(
+                                                  WidgetState.pressed,
+                                                )) {
+                                                  return Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.8);
+                                                }
+                                                if (states.contains(
+                                                  WidgetState.hovered,
+                                                )) {
+                                                  return Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.9);
+                                                }
+                                                return Color.fromRGBO(
+                                                  239,
+                                                  120,
+                                                  26,
+                                                  1,
+                                                );
+                                              }),
+                                          foregroundColor:
+                                              WidgetStateProperty.resolveWith<
+                                                Color?
+                                              >((Set<WidgetState> states) {
+                                                return Colors.white;
+                                              }),
+                                          shape: WidgetStateProperty.all<
+                                            RoundedRectangleBorder
+                                          >(
+                                            RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(18.0),
+                                            ),
+                                          ),
+                                          padding: WidgetStateProperty.all<
+                                            EdgeInsets
+                                          >(
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                          ),
+                                          elevation:
+                                              WidgetStateProperty.resolveWith<
+                                                double?
+                                              >((Set<WidgetState> states) {
+                                                if (states.contains(
+                                                  WidgetState.pressed,
+                                                )) {
+                                                  return 2.0;
+                                                }
+                                                return 5.0;
+                                              }),
+                                          textStyle: WidgetStateProperty.all<
+                                            TextStyle
+                                          >(
+                                            const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          overlayColor:
+                                              WidgetStateProperty.resolveWith<
+                                                Color?
+                                              >((Set<WidgetState> states) {
+                                                if (states.contains(
+                                                  WidgetState.hovered,
+                                                )) {
+                                                  return Colors.white
+                                                      .withValues(alpha: 0.08);
+                                                }
+                                                if (states.contains(
+                                                      WidgetState.focused,
+                                                    ) ||
+                                                    states.contains(
+                                                      WidgetState.pressed,
+                                                    )) {
+                                                  return Colors.white
+                                                      .withValues(alpha: 0.24);
+                                                }
+                                                return null;
+                                              }),
+                                        ),
+                                        onPressed: _resetAllFilters,
+                                        child: const Text(
+                                          'Restablecer filtros',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
               body:
                   _isLoading
                       ? Center(
@@ -1115,161 +1164,194 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: EdgeInsets.all(cardPadding),
                                   // AHORA: Usamos una Row principal para separar el contenido y el icono
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      // 1. Contenido principal que se expande
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            // Nombre de la carrera
-                                            Text(
-                                              race.name,
-                                              maxLines: titleMaxLines,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: titleFontSize,
-                                              ),
-                                            ),
-
-                                            // Separador
-                                            const SizedBox(height: 8.0),
-
-                                            // Fecha
-                                            if (race.date?.isNotEmpty ?? false)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 4.0,
+                                  child: IntrinsicHeight(
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // 1. Contenido principal que se expande
+                                        Expanded(
+                                          flex: 8,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // Nombre de la carrera
+                                              Text(
+                                                race.name,
+                                                maxLines: titleMaxLines,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: titleFontSize,
                                                 ),
-                                                child: Text.rich(
-                                                  TextSpan(
-                                                    text: 'Fecha: ',
-                                                    style: labelStyle,
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text:
-                                                            '${race.date} - ${race.month}', // Asumiendo que race.month ya viene formateado
-                                                        style: resultRaceStyle,
+                                              ),
+
+                                              // Separador
+                                              const SizedBox(height: 8.0),
+
+                                              // Fecha
+                                              if (race.date?.isNotEmpty ??
+                                                  false)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4.0,
                                                       ),
-                                                    ],
+                                                  child: Text.rich(
+                                                    TextSpan(
+                                                      text: 'Fecha: ',
+                                                      style: labelStyle,
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text:
+                                                              '${race.date} - ${race.month}', // Asumiendo que race.month ya viene formateado
+                                                          style:
+                                                              resultRaceStyle,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
 
-                                            // Zona
-                                            if (race.zone?.isNotEmpty ?? false)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 4.0,
-                                                ),
-                                                child: Text.rich(
-                                                  TextSpan(
-                                                    text: 'Zona: ',
-                                                    style: labelStyle,
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text:
-                                                            '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                                        style: resultRaceStyle,
+                                              // Zona
+                                              if (race.zone?.isNotEmpty ??
+                                                  false)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4.0,
                                                       ),
-                                                    ],
+                                                  child: Text.rich(
+                                                    TextSpan(
+                                                      text: 'Zona: ',
+                                                      style: labelStyle,
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text:
+                                                              '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                                          style:
+                                                              resultRaceStyle,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
 
-                                            // Tipo
-                                            if (race.type?.isNotEmpty ?? false)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 4.0,
-                                                ),
-                                                child: Text.rich(
-                                                  TextSpan(
-                                                    text: 'Tipo: ',
-                                                    style: labelStyle,
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text: race.type,
-                                                        style: resultRaceStyle,
+                                              // Tipo
+                                              if (race.type?.isNotEmpty ??
+                                                  false)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4.0,
                                                       ),
-                                                    ],
+                                                  child: Text.rich(
+                                                    TextSpan(
+                                                      text: 'Tipo: ',
+                                                      style: labelStyle,
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text: race.type,
+                                                          style:
+                                                              resultRaceStyle,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
 
-                                            // Terreno
-                                            if (race.terrain?.isNotEmpty ??
-                                                false)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 4.0,
-                                                ),
-                                                child: Text.rich(
-                                                  TextSpan(
-                                                    text: 'Terreno: ',
-                                                    style: labelStyle,
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text: race.terrain,
-                                                        style: resultRaceStyle,
+                                              // Terreno
+                                              if (race.terrain?.isNotEmpty ??
+                                                  false)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4.0,
                                                       ),
-                                                    ],
+                                                  child: Text.rich(
+                                                    TextSpan(
+                                                      text: 'Terreno: ',
+                                                      style: labelStyle,
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text: race.terrain,
+                                                          style:
+                                                              resultRaceStyle,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
 
-                                            // Distancias
-                                            if (race.distances.isNotEmpty)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 4.0,
-                                                ),
-                                                child: Text.rich(
-                                                  TextSpan(
-                                                    text: 'Distancias: ',
-                                                    style: labelStyle,
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text:
-                                                            '${race.distances.join('m, ')}m',
-                                                        style: resultRaceStyle,
+                                              // Distancias
+                                              if (race.distances.isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        top: 4.0,
                                                       ),
-                                                    ],
+                                                  child: Text.rich(
+                                                    TextSpan(
+                                                      text: 'Distancias: ',
+                                                      style: labelStyle,
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                          text:
+                                                              '${race.distances.join('m, ')}m',
+                                                          style:
+                                                              resultRaceStyle,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-
-                                      // Separador horizontal
-                                      const SizedBox(width: 8.0),
-
-                                      // 2. Icono de favorito que se ajusta a su tamaño
-                                      IconButton(
-                                        icon: Icon(
-                                          race.isFavorite
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color:
-                                              race.isFavorite
-                                                  ? Color.fromRGBO(
-                                                    239,
-                                                    120,
-                                                    26,
-                                                    1,
-                                                  )
-                                                  : Colors.grey,
-                                          size: 30,
+                                        VerticalDivider(),
+                                        Expanded(
+                                          flex: 1,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceAround,
+                                            children: [
+                                              // 2. Icono de favorito que se ajusta a su tamaño
+                                              IconButton(
+                                                icon: Icon(
+                                                  race.isFavorite
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
+                                                  color:
+                                                      race.isFavorite
+                                                          ? Color.fromRGBO(
+                                                            239,
+                                                            120,
+                                                            26,
+                                                            1,
+                                                          )
+                                                          : Colors.grey,
+                                                  size: 30,
+                                                ),
+                                                onPressed: () {
+                                                  _toggleFavorite(race);
+                                                },
+                                              ),
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.share,
+                                                  color: Colors.grey,
+                                                  size: 30,
+                                                ),
+                                                onPressed: () {
+                                                  _handleShareRace(race);
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        onPressed: () {
-                                          _toggleFavorite(race);
-                                        },
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
