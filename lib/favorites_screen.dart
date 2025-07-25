@@ -92,140 +92,144 @@ class FavoritesScreenState extends State<FavoritesScreen> {
           vertical: cardVerticalMargin,
         ),
         elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Important for height
-                    children: [
-                      Text(
-                        race.name,
-                        maxLines: titleMaxLines,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: titleFontSize,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // Important for height
+                  children: [
+                    Text(
+                      race.name,
+                      maxLines: titleMaxLines,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: titleFontSize,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    if (race.date?.isNotEmpty ?? false)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Fecha: ',
+                            style: labelStyle,
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: '${race.date} - ${race.month}',
+                                style: resultRaceStyle,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8.0),
-                      if (race.date?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Fecha: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '${race.date} - ${race.month}',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
+                    if (race.zone?.isNotEmpty ?? false)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Zona: ',
+                            style: labelStyle,
+                            children: <TextSpan>[
+                              TextSpan(
+                                text:
+                                    '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                                style: resultRaceStyle,
+                              ),
+                            ],
                           ),
                         ),
-                      if (race.zone?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Zona: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text:
-                                      '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
+                      ),
+                    if (race.type?.isNotEmpty ?? false)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Tipo: ',
+                            style: labelStyle,
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: race.type,
+                                style: resultRaceStyle,
+                              ),
+                            ],
                           ),
                         ),
-                      if (race.type?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Tipo: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: race.type,
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
+                      ),
+                    if (race.terrain?.isNotEmpty ?? false)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Terreno: ',
+                            style: labelStyle,
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: race.terrain,
+                                style: resultRaceStyle,
+                              ),
+                            ],
                           ),
                         ),
-                      if (race.terrain?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Terreno: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: race.terrain,
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
+                      ),
+                    if (race.distances.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Distancias: ',
+                            style: labelStyle,
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: '${race.distances.join('m, ')}m',
+                                style: resultRaceStyle,
+                              ),
+                            ],
                           ),
                         ),
-                      if (race.distances.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Distancias: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '${race.distances.join('m, ')}m',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-                VerticalDivider(),
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.favorite,
-                          color: Color.fromRGBO(239, 120, 26, 1),
-                          size: 30,
-                        ),
-                        onPressed: () {
-                          _handleToggleFavorite(race);
-                        },
+              ),
+              const VerticalDivider(),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.favorite,
+                        color: Color.fromRGBO(239, 120, 26, 1),
+                        size: 30,
                       ),
-                      IconButton(
-                        icon: Icon(Icons.share, color: Colors.grey, size: 30),
-                        onPressed: () {
-                          _handleShareRace(race);
-                        },
+                      onPressed: () {
+                        _handleToggleFavorite(race);
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.share,
+                        color: Colors.grey,
+                        size: 30,
                       ),
-                    ],
-                  ),
+                      onPressed: () {
+                        _handleShareRace(race);
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -256,71 +260,69 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         ),
         centerTitle: true,
       ),
-      body:
-          _favoriteRaces.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.favorite_border,
-                      size: 80,
-                      color: Colors.grey[400],
+      body: _favoriteRaces.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.favorite_border,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Aún no has marcado ninguna carrera como favorita.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: correbirrasOrange,
+                      foregroundColor: Colors.white,
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Aún no has marcado ninguna carrera como favorita.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: correbirrasOrange,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text('Explorar carreras'),
-                    ),
-                  ],
-                ),
-              )
-              : LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  const double tabletBreakpoint = 600.0;
-
-                  if (constraints.maxWidth > tabletBreakpoint) {
-                    // VISTA TABLET: GridView
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(12.0),
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent:
-                            350.0, // Ancho máximo de cada elemento
-                        mainAxisSpacing: 10.0, // Espacio vertical
-                        crossAxisSpacing: 10.0, // Espacio horizontal
-                        mainAxisExtent: 250, // Altura fija de cada elemento
-                      ),
-                      itemCount: _favoriteRaces.length,
-                      itemBuilder: (context, index) {
-                        final race = _favoriteRaces[index];
-                        return _buildRaceItem(race, true);
-                      },
-                    );
-                  } else {
-                    // VISTA MÓVIL: ListView
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      itemCount: _favoriteRaces.length,
-                      itemBuilder: (context, index) {
-                        final race = _favoriteRaces[index];
-                        return _buildRaceItem(race, false);
-                      },
-                    );
-                  }
-                },
+                    child: Text('Explorar carreras'),
+                  ),
+                ],
               ),
+            )
+          : LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                const double tabletBreakpoint = 600.0;
+
+                if (constraints.maxWidth > tabletBreakpoint) {
+                  // VISTA TABLET: GridView
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(12.0),
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 400.0, // Ancho máximo unificado
+                      mainAxisSpacing: 10.0,      // Espacio vertical
+                      crossAxisSpacing: 10.0,     // Espacio horizontal
+                      // Se elimina mainAxisExtent para permitir altura dinámica
+                    ),
+                    itemCount: _favoriteRaces.length,
+                    itemBuilder: (context, index) {
+                      final race = _favoriteRaces[index];
+                      return _buildRaceItem(race, true);
+                    },
+                  );
+                } else {
+                  // VISTA MÓVIL: ListView
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    itemCount: _favoriteRaces.length,
+                    itemBuilder: (context, index) {
+                      final race = _favoriteRaces[index];
+                      return _buildRaceItem(race, false);
+                    },
+                  );
+                }
+              },
+            ),
     );
   }
 }
