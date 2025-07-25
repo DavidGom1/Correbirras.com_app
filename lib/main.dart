@@ -1378,11 +1378,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               padding: const EdgeInsets.all(12.0),
                               itemCount: _filteredRaces.length,
                               gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
+                                  SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 3,
                                     crossAxisSpacing: 10.0,
                                     mainAxisSpacing: 10.0,
-                                    childAspectRatio: cardWidth / cardHeight,
                                   ),
                               itemBuilder: (context, index) {
                                 final race = _filteredRaces[index];
