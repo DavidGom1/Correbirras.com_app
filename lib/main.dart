@@ -1164,6 +1164,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Padding(
                                   padding: EdgeInsets.all(cardPadding),
                                   // AHORA: Usamos una Row principal para separar el contenido y el icono
+                                  child: IntrinsicHeight(
                                     child: Row(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -1352,6 +1353,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ],
                                     ),
                                   ),
+                                ),
                               ),
                             );
                           }
@@ -1372,7 +1374,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ((crossAxisCount - 1) * 10.0) -
                                     24.0) /
                                 crossAxisCount;
-                            double cardHeight = 250.0;
+                            double cardHeight = 215.0;
 
                             return GridView.builder(
                               padding: const EdgeInsets.all(12.0),
