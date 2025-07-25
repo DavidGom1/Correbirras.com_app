@@ -1372,16 +1372,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ((crossAxisCount - 1) * 10.0) -
                                     24.0) /
                                 crossAxisCount;
-                            double cardHeight = 200.0;
+                            double cardHeight = 250.0;
 
                             return GridView.builder(
                               padding: const EdgeInsets.all(12.0),
                               itemCount: _filteredRaces.length,
                               gridDelegate:
-                                  SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 3,
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
                                     crossAxisSpacing: 10.0,
                                     mainAxisSpacing: 10.0,
+                                    childAspectRatio: cardWidth / cardHeight,
                                   ),
                               itemBuilder: (context, index) {
                                 final race = _filteredRaces[index];
