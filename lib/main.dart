@@ -582,7 +582,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       color: Color.fromRGBO(239, 120, 26, 1),
       child: SafeArea(
-        child: SafeArea(
           child: PopScope<Object?>(
             canPop: !_isWebViewVisible,
             onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -928,7 +927,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 title: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Distancia (metros)'),
+                                    const Text('Distancia '),
                                     RangeSlider(
                                       values: _selectedDistanceRange,
                                       min: _filteredMinDistance,
@@ -942,17 +941,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   _filteredMinDistance)
                                               ? ((_filteredMaxDistance -
                                                           _filteredMinDistance) /
-                                                      100)
+                                                      1)
                                                   .round()
                                                   .clamp(1, 1000)
                                               : null,
                                       labels: RangeLabels(
-                                        _selectedDistanceRange.start
-                                            .round()
-                                            .toString(),
-                                        _selectedDistanceRange.end
-                                            .round()
-                                            .toString(),
+                                        '${_selectedDistanceRange.start.round().toString()}${'km'}',
+                                        '${_selectedDistanceRange.end.round().toString()}${'km'}',
                                       ),
                                       activeColor: Color.fromRGBO(
                                         239,
@@ -975,7 +970,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       padding: EdgeInsets.only(bottom: 10),
                                       child: Center(
                                         child: Text(
-                                          "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
+                                          "${_selectedDistanceRange.start.round()}km - ${_selectedDistanceRange.end.round()}km",
                                         ),
                                       ),
                                     ),
@@ -1415,7 +1410,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-      ),
     );
   }
 }
