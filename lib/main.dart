@@ -1383,22 +1383,200 @@ class _MyHomePageState extends State<MyHomePage> {
               drawer: Drawer(
                 child: Column(
                   children: <Widget>[
+                    // Header personalizado del drawer
                     Container(
-                      padding: EdgeInsets.symmetric(vertical: 20),
+                      height: 200,
                       decoration: BoxDecoration(
-                        color: Color.fromRGBO(239, 120, 26, 1),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color.fromRGBO(239, 120, 26, 1),
+                            Color.fromRGBO(255, 140, 50, 1),
+                          ],
+                        ),
                       ),
-                      child: Center(
-                        child: Text('Menú', style: drawersTextStyle),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Foto de perfil y datos del usuario
+                              Row(
+                                children: [
+                                  // Avatar del usuario
+                                  _userPhotoURL != null && _userPhotoURL!.isNotEmpty
+                                      ? CircleAvatar(
+                                          radius: 30,
+                                          backgroundImage: NetworkImage(_userPhotoURL!),
+                                          backgroundColor: Colors.white.withOpacity(0.3),
+                                          onBackgroundImageError: (exception, stackTrace) {
+                                            debugPrint('Error cargando imagen de perfil: $exception');
+                                          },
+                                        )
+                                      : CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor: Colors.white.withOpacity(0.3),
+                                          child: Icon(
+                                            Icons.account_circle, 
+                                            color: Colors.white, 
+                                            size: 40
+                                          ),
+                                        ),
+                                  const SizedBox(width: 16),
+                                  // Información del usuario
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        if (_isLoggedIn) ...[
+                                          Text(
+                                            _userDisplayName?.isNotEmpty == true 
+                                                ? _userDisplayName! 
+                                                : 'Usuario',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _userEmail ?? '',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.9),
+                                              fontSize: 14,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ] else ...[
+                                          const Text(
+                                            'Correbirras',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Agenda de carreras',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.9),
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              // Botón de acción (Gratis/Iniciar Sesión/Cerrar Sesión)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isLoggedIn ? () async {
+                                    Navigator.pop(context); // Cerrar drawer
+                                    
+                                    // Mostrar notificación de que se está cerrando sesión
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Text('Cerrando sesión...'),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.orange,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        margin: const EdgeInsets.all(16),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                    
+                                    await _logout();
+                                    
+                                    // Mostrar notificación de éxito
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              const Icon(Icons.check_circle, color: Colors.white),
+                                              const SizedBox(width: 8),
+                                              const Text('Sesión cerrada exitosamente'),
+                                            ],
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          margin: const EdgeInsets.all(16),
+                                        ),
+                                      );
+                                    }
+                                  } : () {
+                                    Navigator.pop(context); // Cerrar drawer primero
+                                    _showAuthDialog(); // Mostrar el diálogo de autenticación
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Color.fromRGBO(239, 120, 26, 1),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _isLoggedIn ? Icons.logout : Icons.login,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _isLoggedIn ? 'Cerrar Sesión' : 'Iniciar Sesión',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                     Expanded(
                       child: ListView(
-                        padding: EdgeInsets.only(top: 50),
+                        padding: EdgeInsets.only(top: 20),
                         children: <Widget>[
                           // ListTile para "Favoritos"
                           ListTile(
-                            leading: Icon(Icons.favorite), // Icono de favorito
+                            leading: Icon(Icons.favorite, color: Color.fromRGBO(239, 120, 26, 1)), 
                             title: const Text('Favoritos'),
                             onTap: () {
                               Navigator.pop(context); // Cierra el drawer
@@ -1421,7 +1599,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           ListTile(
-                            leading: Icon(Icons.web),
+                            leading: Icon(Icons.web, color: Color.fromRGBO(239, 120, 26, 1)),
                             title: const Text('Ver la pagina correbirras.com'),
                             onTap: () {
                               Navigator.pop(context); // Close the drawer
@@ -1431,7 +1609,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           ListTile(
-                            leading: Icon(Icons.email),
+                            leading: Icon(Icons.email, color: Color.fromRGBO(239, 120, 26, 1)),
                             title: const Text('Contacta con el club'),
                             onTap: () {
                               Navigator.pop(context); // Close the drawer
@@ -1441,113 +1619,13 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           ListTile(
-                            leading: Icon(Icons.star),
+                            leading: Icon(Icons.star, color: Color.fromRGBO(239, 120, 26, 1)),
                             title: const Text('Calificar en Google Play'),
                             onTap: () {
                               Navigator.pop(context); // Close the drawer
                               _rateApp(); // New function to rate the app
                             },
                           ),
-                          const Divider(),
-                          // Sección de autenticación
-                          if (_isLoggedIn) ...[
-                            // Usuario logueado - mostrar info y logout
-                            ListTile(
-                              leading: _userPhotoURL != null && _userPhotoURL!.isNotEmpty
-                                  ? CircleAvatar(
-                                      radius: 20,
-                                      backgroundImage: NetworkImage(_userPhotoURL!),
-                                      backgroundColor: Colors.grey[300],
-                                      onBackgroundImageError: (exception, stackTrace) {
-                                        debugPrint('Error cargando imagen de perfil: $exception');
-                                      },
-                                    )
-                                  : const CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: Colors.green,
-                                      child: Icon(Icons.account_circle, color: Colors.white, size: 24),
-                                    ),
-                              title: Text(
-                                'Conectado como:',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                              subtitle: Text(
-                                _userDisplayName?.isNotEmpty == true 
-                                    ? _userDisplayName! 
-                                    : _userEmail ?? 'Usuario',
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.logout, color: Colors.red),
-                              title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
-                              onTap: () async {
-                                Navigator.pop(context); // Cerrar drawer
-                                
-                                // Mostrar notificación de que se está cerrando sesión
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text('Cerrando sesión...'),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    margin: const EdgeInsets.all(16),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-                                
-                                await _logout();
-                                
-                                // Mostrar notificación de éxito
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Row(
-                                        children: [
-                                          const Icon(Icons.check_circle, color: Colors.white),
-                                          const SizedBox(width: 8),
-                                          const Text('Sesión cerrada exitosamente'),
-                                        ],
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      margin: const EdgeInsets.all(16),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ] else ...[
-                            // Usuario no logueado - mostrar login
-                            ListTile(
-                              leading: const Icon(Icons.login, color: Colors.blue),
-                              title: const Text('Iniciar Sesión', style: TextStyle(color: Colors.blue)),
-                              subtitle: const Text('Sincroniza tus favoritos', style: TextStyle(fontSize: 12)),
-                              onTap: () {
-                                Navigator.pop(context); // Cerrar drawer primero
-                                _showAuthDialog(); // Mostrar el diálogo bonito
-                              },
-                            ),
-                          ],
                         ],
                       ),
                     ),
