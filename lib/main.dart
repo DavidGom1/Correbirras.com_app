@@ -976,8 +976,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   .clamp(1, 1000)
                                               : null,
                                       labels: RangeLabels(
-                                        '${_selectedDistanceRange.start.round().toString()}${'km'}',
-                                        '${_selectedDistanceRange.end.round().toString()}${'km'}',
+                                        '${_selectedDistanceRange.start.round().toString()}${'K'}',
+                                        '${_selectedDistanceRange.end.round().toString()}${'K'}',
                                       ),
                                       activeColor: Color.fromRGBO(
                                         239,
@@ -1000,7 +1000,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       padding: EdgeInsets.only(bottom: 10),
                                       child: Center(
                                         child: Text(
-                                          "${_selectedDistanceRange.start.round()}km - ${_selectedDistanceRange.end.round()}km",
+                                          "${_selectedDistanceRange.start.round()}K - ${_selectedDistanceRange.end.round()}K",
                                         ),
                                       ),
                                     ),
@@ -1317,7 +1317,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 child: Text.rich(
                                                   TextSpan(
-                                                    text: 'Distancia (km): ',
+                                                    text: 'Distancia: ',
                                                     style: labelStyle,
                                                     children: <TextSpan>[
                                                       TextSpan(
@@ -1328,7 +1328,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 ? (() {
                                                                   race.distances
                                                                       .sort();
-                                                                  return race.distances.join(', ').replaceAll('.0', '');
+                                                                  return '${race.distances.join('K, ').replaceAll('.0', '')}K';
                                                                 })()
                                                                 : 'No disponible',
 
