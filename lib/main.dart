@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/favorites_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:upgrader/upgrader.dart';
 
 const List<String> meseses = [
   "enero",
@@ -35,6 +36,27 @@ const Map<String, String> zonascolores = {
 
 final Color correbirrasOrange = Color.fromRGBO(239, 120, 26, 1);
 final Color correbirrasBackground = Color(0xFFf9f9f9);
+
+// Mensajes personalizados en español para upgrader
+class CorrebirrasUpgraderMessages extends UpgraderMessages {
+  @override
+  String get buttonTitleUpdate => 'Actualizar Ahora';
+  
+  @override
+  String get buttonTitleLater => 'Más Tarde';
+  
+  @override
+  String get prompt => 'Una nueva versión de Correbirras está disponible. ¿Te gustaría actualizar ahora?';
+  
+  @override
+  String get title => 'Actualización Disponible';
+  
+  @override
+  String get buttonTitleIgnore => 'Ignorar';
+  
+  @override
+  String get releaseNotes => 'Notas de la versión:';
+}
 
 class Race {
   final String month;
@@ -582,7 +604,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       color: Color.fromRGBO(239, 120, 26, 1),
       child: SafeArea(
-        child: SafeArea(
           child: PopScope<Object?>(
             canPop: !_isWebViewVisible,
             onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -592,7 +613,15 @@ class _MyHomePageState extends State<MyHomePage> {
               }
               // Si didPop es true, el pop ya ha ocurrido: no hacemos nada
             },
-            child: Scaffold(
+            child: UpgradeAlert(
+              upgrader: Upgrader(
+                durationUntilAlertAgain: Duration(days: 3),
+                debugDisplayAlways: true,
+                countryCode: 'ES',
+                debugLogging: true,
+                messages: CorrebirrasUpgraderMessages(),
+              ),
+              child: Scaffold(
               appBar: AppBar(
                 elevation: 0,
                 systemOverlayStyle: SystemUiOverlayStyle(
@@ -928,7 +957,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 title: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Distancia (metros)'),
+                                    const Text('Distancia '),
                                     RangeSlider(
                                       values: _selectedDistanceRange,
                                       min: _filteredMinDistance,
@@ -942,17 +971,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   _filteredMinDistance)
                                               ? ((_filteredMaxDistance -
                                                           _filteredMinDistance) /
-                                                      100)
+                                                      1)
                                                   .round()
                                                   .clamp(1, 1000)
                                               : null,
                                       labels: RangeLabels(
-                                        _selectedDistanceRange.start
-                                            .round()
-                                            .toString(),
-                                        _selectedDistanceRange.end
-                                            .round()
-                                            .toString(),
+                                        '${_selectedDistanceRange.start.round().toString()}${'K'}',
+                                        '${_selectedDistanceRange.end.round().toString()}${'K'}',
                                       ),
                                       activeColor: Color.fromRGBO(
                                         239,
@@ -975,7 +1000,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       padding: EdgeInsets.only(bottom: 10),
                                       child: Center(
                                         child: Text(
-                                          "${_selectedDistanceRange.start.round()}m - ${_selectedDistanceRange.end.round()}m",
+                                          "${_selectedDistanceRange.start.round()}K - ${_selectedDistanceRange.end.round()}K",
                                         ),
                                       ),
                                     ),
@@ -1292,7 +1317,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 child: Text.rich(
                                                   TextSpan(
-                                                    text: 'Distancia (km): ',
+                                                    text: 'Distancia: ',
                                                     style: labelStyle,
                                                     children: <TextSpan>[
                                                       TextSpan(
@@ -1303,7 +1328,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 ? (() {
                                                                   race.distances
                                                                       .sort();
-                                                                  return race.distances.join(', ').replaceAll('.0', '');
+                                                                  return '${race.distances.join('K, ').replaceAll('.0', '')}K';
                                                                 })()
                                                                 : 'No disponible',
 
@@ -1415,7 +1440,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-      ),
+      ), // Cierre de UpgradeAlert
     );
   }
 }

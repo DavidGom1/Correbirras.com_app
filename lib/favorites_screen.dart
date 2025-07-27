@@ -31,6 +31,22 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Color.fromRGBO(239, 120, 26, 1),
+        statusBarIconBrightness: Brightness.light,
+        systemStatusBarContrastEnforced: true,
+        systemNavigationBarColor: Color.fromRGBO(
+          239,
+          120,
+          26,
+          1,
+        ), // Esta línea configura la barra inferior
+        systemNavigationBarIconBrightness:
+            Brightness
+                .light, // Esta línea configura los iconos de la barra inferior
+      ),
+    );
     _filterFavoriteRaces();
   }
 
@@ -240,102 +256,103 @@ class FavoritesScreenState extends State<FavoritesScreen> {
       fontWeight: FontWeight.bold,
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Color.fromRGBO(239, 120, 26, 1),
-          statusBarIconBrightness: Brightness.light,
+    return Container(
+      color: Color.fromRGBO(239, 120, 26, 1),
+      child: SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 0,
+          shadowColor: const Color.fromARGB(186, 0, 0, 0),
+          backgroundColor: Color.fromRGBO(239, 120, 26, 1) ,
+          foregroundColor: Colors.white,
+          title: Text(
+            'Favoritos',
+            style: drawersTextStyle.copyWith(fontSize: 20),
+          ),
+          centerTitle: true,
         ),
-        shadowColor: const Color.fromARGB(186, 0, 0, 0),
-        backgroundColor: correbirrasOrange,
-        foregroundColor: Colors.white,
-        title: Text(
-          'Favoritos',
-          style: drawersTextStyle.copyWith(fontSize: 20),
-        ),
-        centerTitle: true,
-      ),
-      body:
-          _favoriteRaces.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.favorite_border,
-                      size: 80,
-                      color: Colors.grey[400],
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Aún no has marcado ninguna carrera como favorita.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: correbirrasOrange,
-                        foregroundColor: Colors.white,
+        body:
+            _favoriteRaces.isEmpty
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        size: 80,
+                        color: Colors.grey[400],
                       ),
-                      child: Text('Explorar carreras'),
-                    ),
-                  ],
-                ),
-              )
-              : LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  const double tabletBreakpoint = 600.0;
+                      SizedBox(height: 16),
+                      Text(
+                        'Aún no has marcado ninguna carrera como favorita.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text('Explorar carreras'),
+                      ),
+                    ],
+                  ),
+                )
+                : LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    const double tabletBreakpoint = 600.0;
 
-                  const double cardWidthForGridReference = 350.0;
-                  if (constraints.maxWidth > tabletBreakpoint) {
-                    int crossAxisCount = (constraints.maxWidth /
-                            cardWidthForGridReference)
-                        .floor()
-                        .clamp(2, 4);
+                    const double cardWidthForGridReference = 350.0;
                     if (constraints.maxWidth > tabletBreakpoint) {
-                      if (crossAxisCount < 2) {
-                        crossAxisCount = 2;
+                      int crossAxisCount = (constraints.maxWidth /
+                              cardWidthForGridReference)
+                          .floor()
+                          .clamp(2, 4);
+                      if (constraints.maxWidth > tabletBreakpoint) {
+                        if (crossAxisCount < 2) {
+                          crossAxisCount = 2;
+                        }
                       }
-                    }
 
-                    double cardWidth =
-                        (constraints.maxWidth -
-                            ((crossAxisCount - 1) * 10.0) -
-                            24.0) /
-                        crossAxisCount;
-                    double cardHeight = 215.0;
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(12.0),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 10.0,
-                        mainAxisSpacing: 10.0,
-                        childAspectRatio: cardWidth / cardHeight,
-                      ),
-                      itemCount: _favoriteRaces.length,
-                      itemBuilder: (context, index) {
-                        final race = _favoriteRaces[index];
-                        return _buildRaceItem(race, true);
-                      },
-                    );
-                  } else {
-                    // VISTA MÓVIL: ListView
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      itemCount: _favoriteRaces.length,
-                      itemBuilder: (context, index) {
-                        final race = _favoriteRaces[index];
-                        return _buildRaceItem(race, false);
-                      },
-                    );
-                  }
-                },
-              ),
+                      double cardWidth =
+                          (constraints.maxWidth -
+                              ((crossAxisCount - 1) * 10.0) -
+                              24.0) /
+                          crossAxisCount;
+                      double cardHeight = 215.0;
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(12.0),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 10.0,
+                          mainAxisSpacing: 10.0,
+                          childAspectRatio: cardWidth / cardHeight,
+                        ),
+                        itemCount: _favoriteRaces.length,
+                        itemBuilder: (context, index) {
+                          final race = _favoriteRaces[index];
+                          return _buildRaceItem(race, true);
+                        },
+                      );
+                    } else {
+                      // VISTA MÓVIL: ListView
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        itemCount: _favoriteRaces.length,
+                        itemBuilder: (context, index) {
+                          final race = _favoriteRaces[index];
+                          return _buildRaceItem(race, false);
+                        },
+                      );
+                    }
+                  },
+                ),
+      ),
+      ),
     );
   }
 }
