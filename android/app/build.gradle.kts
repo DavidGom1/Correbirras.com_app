@@ -24,7 +24,7 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName")
 
 android {
     namespace = "com.correbirras.agenda"
-    compileSdkVersion(35)
+    compileSdk = 35
 
         compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -37,27 +37,34 @@ android {
 
     defaultConfig {
         applicationId = "com.correbirras.agenda"
-        minSdkVersion(26)
-        targetSdkVersion(35)
+        minSdk = 26
+        targetSdk = 35
         versionCode = flutterVersionCode.toString().toInt()
         versionName = flutterVersionName
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file(localProperties.getProperty("keystore.file") ?: "keystore.jks")
-            storePassword = localProperties.getProperty("keystore.password")
-            keyAlias = localProperties.getProperty("key.alias")
-            keyPassword = localProperties.getProperty("key.password")
-            if (storePassword == null || keyAlias == null || keyPassword == null) {
-                throw GradleException("Missing signing config values in local.properties")
+            val keystoreFile = localProperties.getProperty("keystore.file")
+            val keystorePassword = localProperties.getProperty("keystore.password")
+            val keyAliasValue = localProperties.getProperty("key.alias")
+            val keyPasswordValue = localProperties.getProperty("key.password")
+            
+            if (keystoreFile != null && keystorePassword != null && keyAliasValue != null && keyPasswordValue != null) {
+                storeFile = file(keystoreFile)
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigningConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfig.storeFile != null) {
+                signingConfig = releaseSigningConfig
+            }
             isMinifyEnabled = true // <-- Cambiado a true
             isShrinkResources = true // <-- Cambiado a true
         }

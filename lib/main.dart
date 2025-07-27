@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/favorites_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:upgrader/upgrader.dart';
 
 const List<String> meseses = [
   "enero",
@@ -35,6 +36,27 @@ const Map<String, String> zonascolores = {
 
 final Color correbirrasOrange = Color.fromRGBO(239, 120, 26, 1);
 final Color correbirrasBackground = Color(0xFFf9f9f9);
+
+// Mensajes personalizados en español para upgrader
+class CorrebirrasUpgraderMessages extends UpgraderMessages {
+  @override
+  String get buttonTitleUpdate => 'Actualizar Ahora';
+  
+  @override
+  String get buttonTitleLater => 'Más Tarde';
+  
+  @override
+  String get prompt => 'Una nueva versión de Correbirras está disponible. ¿Te gustaría actualizar ahora?';
+  
+  @override
+  String get title => 'Actualización Disponible';
+  
+  @override
+  String get buttonTitleIgnore => 'Ignorar';
+  
+  @override
+  String get releaseNotes => 'Notas de la versión:';
+}
 
 class Race {
   final String month;
@@ -591,7 +613,15 @@ class _MyHomePageState extends State<MyHomePage> {
               }
               // Si didPop es true, el pop ya ha ocurrido: no hacemos nada
             },
-            child: Scaffold(
+            child: UpgradeAlert(
+              upgrader: Upgrader(
+                durationUntilAlertAgain: Duration(days: 3),
+                debugDisplayAlways: true,
+                countryCode: 'ES',
+                debugLogging: true,
+                messages: CorrebirrasUpgraderMessages(),
+              ),
+              child: Scaffold(
               appBar: AppBar(
                 elevation: 0,
                 systemOverlayStyle: SystemUiOverlayStyle(
@@ -1410,6 +1440,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
+      ), // Cierre de UpgradeAlert
     );
   }
 }
