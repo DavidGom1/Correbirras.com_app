@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'main.dart'; // Importa tu archivo principal
 
 // Define los tipos de funciones que pasaremos
@@ -81,7 +82,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     final double cardHorizontalMargin = isGridView ? 4.0 : 16.0;
     final double cardVerticalMargin = isGridView ? 4.0 : 6.0;
     final double cardPadding = 16.0;
-    final int titleMaxLines = isGridView ? 2 : 1;
+    final int? titleMaxLines = isGridView ? null : 1; // null permite líneas ilimitadas en grid
     final double titleFontSize = 16.0;
     final TextStyle resultRaceStyle = TextStyle(
       fontSize: 15,
@@ -124,7 +125,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                       Text(
                         race.name,
                         maxLines: titleMaxLines,
-                        overflow: TextOverflow.ellipsis,
+                        overflow: titleMaxLines != null ? TextOverflow.ellipsis : TextOverflow.visible,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: titleFontSize,
@@ -318,21 +319,12 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         }
                       }
 
-                      double cardWidth =
-                          (constraints.maxWidth -
-                              ((crossAxisCount - 1) * 10.0) -
-                              24.0) /
-                          crossAxisCount;
-                      double cardHeight = 215.0;
-                      return GridView.builder(
+                      return MasonryGridView.count(
                         padding: const EdgeInsets.all(12.0),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 10.0,
-                          mainAxisSpacing: 10.0,
-                          childAspectRatio: cardWidth / cardHeight,
-                        ),
                         itemCount: _favoriteRaces.length,
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 10.0,
+                        mainAxisSpacing: 10.0,
                         itemBuilder: (context, index) {
                           final race = _favoriteRaces[index];
                           return _buildRaceItem(race, true);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart' as html_dom;
@@ -15,6 +16,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'firebase_options.dart';
 
 const List<String> meseses = [
@@ -1381,11 +1383,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
               drawer: Drawer(
-                child: Column(
-                  children: <Widget>[
-                    // Header personalizado del drawer
-                    Container(
-                      height: 200,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0), // Controla la intensidad del desenfoque
+                  child: Container(
+                    color: Colors.white.withOpacity(0.8), // Añade una transparencia al fondo
+                    child: Column(
+                      children: <Widget>[
+                        // Header personalizado del drawer
+                        Container(
+                          height: 200,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
@@ -1725,12 +1731,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                   ],
+                    ),
+                  ),
                 ),
               ),
               endDrawer:
                   _isWebViewVisible
                       ? null
                       : Drawer(
+                        elevation: 16.0, // Controla la intensidad de la sombra (por defecto es 16.0)
+                        shadowColor: Colors.black.withValues(alpha: 0.5), // Color de la sombra
                         child: Material(
                           color: Colors.white,
                           child: ListView(
@@ -2037,7 +2047,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             final double cardHorizontalMargin =
                                 isGridView ? 8.0 : 16.0;
                             final double cardPadding = isGridView ? 12.0 : 16.0;
-                            final int titleMaxLines = isGridView ? 2 : 1;
+                            final int? titleMaxLines = isGridView ? null : 1; // null permite líneas ilimitadas en grid
                             final double titleFontSize =
                                 isGridView ? 15.0 : 16.0;
                             final TextStyle resultRaceStyle = TextStyle(
@@ -2089,7 +2099,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Text(
                                                 race.name,
                                                 maxLines: titleMaxLines,
-                                                overflow: TextOverflow.ellipsis,
+                                                overflow: titleMaxLines != null ? TextOverflow.ellipsis : TextOverflow.visible,
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: titleFontSize,
@@ -2284,23 +2294,12 @@ class _MyHomePageState extends State<MyHomePage> {
                               }
                             }
 
-                            double cardWidth =
-                                (constraints.maxWidth -
-                                    ((crossAxisCount - 1) * 10.0) -
-                                    24.0) /
-                                crossAxisCount;
-                            double cardHeight = 215.0;
-
-                            return GridView.builder(
+                            return MasonryGridView.count(
                               padding: const EdgeInsets.all(12.0),
                               itemCount: _filteredRaces.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 10.0,
-                                    mainAxisSpacing: 10.0,
-                                    childAspectRatio: cardWidth / cardHeight,
-                                  ),
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: 10.0,
+                              mainAxisSpacing: 10.0,
                               itemBuilder: (context, index) {
                                 final race = _filteredRaces[index];
                                 return buildRaceItemWidget(race, true);
