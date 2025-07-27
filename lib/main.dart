@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart' as html_dom;
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/favorites_screen.dart';
@@ -14,8 +14,8 @@ import 'package:upgrader/upgrader.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:correbirras/auth_screen.dart';
-import 'package:correbirras/favorites_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'firebase_options.dart';
 
 const List<String> meseses = [
   "enero",
@@ -138,11 +138,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    // Inicializamos Firebase
-    await Firebase.initializeApp();
-    print("🔥 Firebase inicializado correctamente");
+    // Inicializar Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint("✅ Firebase inicializado correctamente");
   } catch (e) {
-    print("❌ Error al inicializar Firebase: $e");
+    debugPrint("❌ Error al inicializar Firebase: $e");
+    // Continuar sin Firebase en caso de error
   }
   
   runApp(const MyApp());
@@ -160,46 +163,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: correbirrasBackground,
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-// Widget que maneja el estado de autenticación
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  Future<void> _handleUserLogin() async {
-    // Migrar favoritos locales a Firestore cuando el usuario se loguea
-    await FavoritesService.migrateLocalFavoritesToFirestore();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // Mostramos loading mientras se verifica el estado
-          return const Scaffold(
-            backgroundColor: Color(0xFFf9f9f9),
-            body: Center(
-              child: CircularProgressIndicator(
-                color: Color.fromRGBO(239, 120, 26, 1),
-              ),
-            ),
-          );
-        }
-
-        if (snapshot.hasData) {
-          // Usuario está logueado, migrar favoritos y mostrar la app principal
-          _handleUserLogin();
-          return const MyHomePage(title: 'Correbirras.com');
-        } else {
-          // Usuario no está logueado, mostrar pantalla de login
-          return const AuthScreen();
-        }
-      },
+      home: const MyHomePage(title: 'Correbirras.com'),
     );
   }
 }
@@ -229,6 +193,17 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isWebViewVisible = false;
   bool _isWebViewLoading = false;
   late final WebViewController _controller;
+  
+  // Estado de autenticación con Firebase
+  bool _isLoggedIn = false;
+  String? _userEmail;
+  String? _userDisplayName;
+  String? _userPhotoURL;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '1053599538056-s4ask7gc47rsmt414vnrge6fkffmpe5i.apps.googleusercontent.com',
+  );
 
   @override
   void initState() {
@@ -255,6 +230,33 @@ class _MyHomePageState extends State<MyHomePage> {
             Brightness.light, // Color de los iconos (claro u oscuro)
       ),
     );
+    
+    // Escuchar cambios de autenticación de Firebase de forma segura
+    try {
+      _auth.authStateChanges().listen((User? user) {
+        if (mounted) {
+          setState(() {
+            _isLoggedIn = user != null;
+            _userEmail = user?.email;
+            _userDisplayName = user?.displayName;
+            _userPhotoURL = user?.photoURL;
+          });
+          
+          debugPrint('Usuario autenticado: ${user?.email}');
+          debugPrint('Nombre: ${user?.displayName}');
+          debugPrint('Foto: ${user?.photoURL}');
+          
+          if (user != null) {
+            // Cargar favoritos cuando el usuario se autentica
+            _loadFavoritesFromFirestore();
+          }
+        }
+      });
+      debugPrint("✅ Listener de Firebase Auth configurado");
+    } catch (e) {
+      debugPrint("❌ Error al configurar Firebase Auth: $e");
+    }
+    
     _downloadHtmlAndParse();
     _controller =
         WebViewController()
@@ -311,36 +313,653 @@ class _MyHomePageState extends State<MyHomePage> {
           );
   }
 
+  // Método para cerrar sesión con Firebase
+  Future<void> _logout() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      // El estado se actualizará automáticamente por el listener en initState
+    } catch (e) {
+      debugPrint('Error al cerrar sesión: $e');
+    }
+  }
+
+  // Método para autenticación con Google
+  Future<UserCredential?> _signInWithGoogle() async {
+    try {
+      debugPrint('🔵 Iniciando autenticación con Google...');
+      
+      // Iniciar el flujo de autenticación con Google
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // El usuario canceló el proceso
+        debugPrint('🟡 Usuario canceló la autenticación con Google');
+        return null;
+      }
+
+      debugPrint('🔵 Usuario de Google obtenido: ${googleUser.email}');
+
+      // Obtener los detalles de autenticación de Google
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      debugPrint('🔵 Tokens obtenidos de Google');
+
+      // Crear credenciales de Firebase
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      debugPrint('🔵 Credenciales de Firebase creadas');
+
+      // Autenticarse con Firebase usando las credenciales de Google
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      
+      debugPrint('✅ Autenticación con Firebase exitosa: ${userCredential.user?.email}');
+      
+      // Crear documento de usuario en Firestore si es la primera vez
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        debugPrint('🔵 Creando nuevo documento de usuario en Firestore');
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': userCredential.user!.email,
+          'displayName': userCredential.user!.displayName,
+          'photoURL': userCredential.user!.photoURL,
+          'provider': 'google',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        debugPrint('✅ Documento de usuario creado en Firestore');
+      }
+
+      return userCredential;
+    } catch (e) {
+      debugPrint('❌ Error en autenticación con Google: $e');
+      debugPrint('❌ Tipo de error: ${e.runtimeType}');
+      
+      // Si es un PlatformException, mostrar más detalles
+      if (e is PlatformException) {
+        debugPrint('❌ Código de error: ${e.code}');
+        debugPrint('❌ Mensaje: ${e.message}');
+        debugPrint('❌ Detalles: ${e.details}');
+      }
+      
+      rethrow;
+    }
+  }
+
+  // Cargar favoritos desde Firestore
+  Future<void> _loadFavoritesFromFirestore() async {
+    if (!_isLoggedIn || _auth.currentUser == null) return;
+
+    try {
+      final userDoc = _firestore.collection('users').doc(_auth.currentUser!.uid);
+      final favoritesSnapshot = await userDoc.collection('favorites').get();
+      
+      final favoriteNames = favoritesSnapshot.docs.map((doc) => doc.data()['raceName'] as String).toList();
+      
+      // Sincronizar con la lista actual de carreras
+      for (var race in _allRaces) {
+        race.isFavorite = favoriteNames.contains(race.name);
+      }
+      
+      setState(() {
+        // Actualizar la UI
+      });
+      
+      debugPrint("Favoritos cargados desde Firestore: $favoriteNames");
+    } catch (e) {
+      debugPrint("Error al cargar favoritos desde Firestore: $e");
+    }
+  }
+
   Future<void> _toggleFavorite(Race race) async {
-    // Cambiar estado inmediatamente en la UI para responsividad
+    // Actualizar UI inmediatamente
     setState(() {
       race.isFavorite = !race.isFavorite;
     });
 
-    // Guardar/eliminar en Firestore
-    bool success;
-    if (race.isFavorite) {
-      success = await FavoritesService.addFavorite(race.name);
-    } else {
-      success = await FavoritesService.removeFavorite(race.name);
-    }
-
-    // Si falló la operación, revertir el cambio en la UI
-    if (!success) {
-      setState(() {
-        race.isFavorite = !race.isFavorite;
-      });
-      
-      // Mostrar mensaje de error
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al actualizar favoritos'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    if (_isLoggedIn && _auth.currentUser != null) {
+      // Usuario logueado - sincronizar con Firestore
+      try {
+        final userDoc = _firestore.collection('users').doc(_auth.currentUser!.uid);
+        
+        if (race.isFavorite) {
+          // Añadir a favoritos en Firestore
+          await userDoc.collection('favorites').doc(race.name).set({
+            'raceName': race.name,
+            'month': race.month,
+            'zone': race.zone,
+            'type': race.type,
+            'terrain': race.terrain,
+            'distances': race.distances,
+            'registrationLink': race.registrationLink,
+            'date': race.date,
+            'addedAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Eliminar de favoritos en Firestore
+          await userDoc.collection('favorites').doc(race.name).delete();
+        }
+        debugPrint("Favoritos sincronizados con Firestore para usuario: ${_auth.currentUser!.email}");
+      } catch (e) {
+        debugPrint("Error al sincronizar favoritos con Firestore: $e");
+        // Revertir el cambio en la UI si hay error
+        setState(() {
+          race.isFavorite = !race.isFavorite;
+        });
       }
+    } else {
+      // Usuario no logueado - usar SharedPreferences local
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> favoriteRaces = prefs.getStringList('favoriteRaces') ?? [];
+
+      if (race.isFavorite) {
+        if (!favoriteRaces.contains(race.name)) {
+          favoriteRaces.add(race.name);
+        }
+      } else {
+        favoriteRaces.remove(race.name);
+      }
+
+      await prefs.setStringList('favoriteRaces', favoriteRaces);
+      debugPrint("Favoritos guardados localmente: $favoriteRaces");
     }
+  }
+
+  // Método para mostrar el diálogo de autenticación con formulario integrado
+  Future<void> _showAuthDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        final _emailController = TextEditingController();
+        final _passwordController = TextEditingController();
+        final _formKey = GlobalKey<FormState>();
+        bool _isLoginMode = true;
+        bool _isLoading = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 400,
+                  maxHeight: MediaQuery.of(context).size.height * 0.75, // Ajustar altura al 75% de la pantalla
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header del diálogo
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color.fromRGBO(239, 120, 26, 1),
+                              Color.fromRGBO(255, 140, 46, 1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.account_circle,
+                              color: Colors.white,
+                              size: 50,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _isLoginMode ? 'Iniciar Sesión' : 'Registrarse',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              'Sincroniza tus favoritos en la nube',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Contenido del formulario
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                // Campo de email
+                                TextFormField(
+                                  controller: _emailController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Email',
+                                    prefixIcon: const Icon(Icons.email),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Color.fromRGBO(239, 120, 26, 1),
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Por favor ingresa tu email';
+                                    }
+                                    if (!value.contains('@')) {
+                                      return 'Por favor ingresa un email válido';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                // Campo de contraseña
+                                TextFormField(
+                                  controller: _passwordController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Contraseña',
+                                    prefixIcon: const Icon(Icons.lock),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Color.fromRGBO(239, 120, 26, 1),
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  obscureText: true,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Por favor ingresa tu contraseña';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'La contraseña debe tener al menos 6 caracteres';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                // Botón principal
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : () async {
+                                      if (!_formKey.currentState!.validate()) {
+                                        return;
+                                      }
+
+                                      setDialogState(() {
+                                        _isLoading = true;
+                                      });
+
+                                      try {
+                                        UserCredential userCredential;
+                                        
+                                        if (_isLoginMode) {
+                                          // Iniciar sesión con Firebase Auth
+                                          userCredential = await _auth.signInWithEmailAndPassword(
+                                            email: _emailController.text.trim(),
+                                            password: _passwordController.text.trim(),
+                                          );
+                                        } else {
+                                          // Registrarse con Firebase Auth
+                                          userCredential = await _auth.createUserWithEmailAndPassword(
+                                            email: _emailController.text.trim(),
+                                            password: _passwordController.text.trim(),
+                                          );
+                                          
+                                          // Crear documento de usuario en Firestore
+                                          await _firestore.collection('users').doc(userCredential.user!.uid).set({
+                                            'email': _emailController.text.trim(),
+                                            'createdAt': FieldValue.serverTimestamp(),
+                                          });
+                                        }
+
+                                        setDialogState(() {
+                                          _isLoading = false;
+                                        });
+
+                                        Navigator.of(context).pop();
+
+                                        // Cargar favoritos desde Firestore
+                                        await _loadFavoritesFromFirestore();
+
+                                        // Mostrar notificación de éxito
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                const Icon(Icons.check_circle, color: Colors.white),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(_isLoginMode 
+                                                      ? '¡Bienvenido de vuelta ${_emailController.text.split('@')[0]}! 🎉'
+                                                      : '¡Cuenta creada exitosamente ${_emailController.text.split('@')[0]}! 🎉'),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: Colors.green,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            margin: const EdgeInsets.all(16),
+                                            duration: const Duration(seconds: 3),
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        setDialogState(() {
+                                          _isLoading = false;
+                                        });
+                                        
+                                        String errorMessage = 'Error de autenticación';
+                                        if (e is FirebaseAuthException) {
+                                          switch (e.code) {
+                                            case 'user-not-found':
+                                              errorMessage = 'No existe una cuenta con este email';
+                                              break;
+                                            case 'wrong-password':
+                                              errorMessage = 'Contraseña incorrecta';
+                                              break;
+                                            case 'email-already-in-use':
+                                              errorMessage = 'Este email ya está registrado';
+                                              break;
+                                            case 'weak-password':
+                                              errorMessage = 'La contraseña es muy débil';
+                                              break;
+                                            case 'invalid-email':
+                                              errorMessage = 'Email inválido';
+                                              break;
+                                            default:
+                                              errorMessage = e.message ?? 'Error desconocido';
+                                          }
+                                        }
+                                        
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                const Icon(Icons.error, color: Colors.white),
+                                                const SizedBox(width: 8),
+                                                Expanded(child: Text(errorMessage)),
+                                              ],
+                                            ),
+                                            backgroundColor: Colors.red,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            margin: const EdgeInsets.all(16),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      elevation: 2,
+                                    ),
+                                    child: _isLoading
+                                        ? Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(_isLoginMode ? 'Iniciando...' : 'Registrando...'),
+                                            ],
+                                          )
+                                        : Text(
+                                            _isLoginMode ? 'Iniciar Sesión' : 'Registrarse',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                // Divider con texto
+                                Row(
+                                  children: [
+                                    Expanded(child: Divider(color: Colors.grey[300])),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      child: Text(
+                                        'o continúa con',
+                                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                      ),
+                                    ),
+                                    Expanded(child: Divider(color: Colors.grey[300])),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Botón de Google Sign In
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isLoading ? null : () async {
+                                      debugPrint('🔵 Botón Google Sign In presionado');
+                                      setDialogState(() {
+                                        _isLoading = true;
+                                      });
+
+                                      try {
+                                        debugPrint('🔵 Iniciando _signInWithGoogle()...');
+                                        final userCredential = await _signInWithGoogle();
+                                        debugPrint('🔵 _signInWithGoogle() completado. UserCredential: ${userCredential != null ? 'SÍ' : 'NO'}');
+                                        
+                                        if (userCredential != null) {
+                                          debugPrint('✅ Login exitoso! Usuario: ${userCredential.user?.email}');
+                                          
+                                          setDialogState(() {
+                                            _isLoading = false;
+                                          });
+
+                                          debugPrint('🔵 Cerrando diálogo...');
+                                          Navigator.of(context).pop();
+
+                                          debugPrint('🔵 Cargando favoritos desde Firestore...');
+                                          // Cargar favoritos desde Firestore
+                                          await _loadFavoritesFromFirestore();
+
+                                          debugPrint('🔵 Mostrando notificación de éxito...');
+                                          // Mostrar notificación de éxito
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Row(
+                                                children: [
+                                                  const Icon(Icons.check_circle, color: Colors.white),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text('¡Bienvenido ${userCredential.user?.displayName?.split(' ')[0] ?? 'Usuario'}! 🎉'),
+                                                  ),
+                                                ],
+                                              ),
+                                              backgroundColor: Colors.green,
+                                              behavior: SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              margin: const EdgeInsets.all(16),
+                                              duration: const Duration(seconds: 3),
+                                            ),
+                                          );
+                                          debugPrint('✅ Notificación de éxito mostrada');
+                                        } else {
+                                          debugPrint('⚠️ userCredential es null - usuario canceló');
+                                          setDialogState(() {
+                                            _isLoading = false;
+                                          });
+                                        }
+                                      } catch (e) {
+                                        debugPrint('❌ Error en botón Google Sign In: $e');
+                                        setDialogState(() {
+                                          _isLoading = false;
+                                        });
+                                        
+                                        String errorMessage = 'Error al iniciar sesión con Google';
+                                        
+                                        if (e.toString().contains('network_error')) {
+                                          errorMessage = 'Error de conexión. Verifica tu internet.';
+                                        } else if (e.toString().contains('sign_in_cancelled')) {
+                                          errorMessage = 'Inicio de sesión cancelado';
+                                        } else if (e.toString().contains('sign_in_failed')) {
+                                          if (e.toString().contains('ApiException: 10:')) {
+                                            errorMessage = 'Error de configuración. Contacta al desarrollador.';
+                                          } else {
+                                            errorMessage = 'Error al conectar con Google. Inténtalo de nuevo.';
+                                          }
+                                        }
+                                        
+                                        debugPrint('❌ Detalle completo del error: $e');
+                                        
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                const Icon(Icons.error, color: Colors.white),
+                                                const SizedBox(width: 8),
+                                                Expanded(child: Text(errorMessage)),
+                                              ],
+                                            ),
+                                            backgroundColor: Colors.red,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            margin: const EdgeInsets.all(16),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: Image.network(
+                                      'https://developers.google.com/identity/images/g-logo.png',
+                                      height: 20,
+                                      width: 20,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.account_circle, size: 20);
+                                      },
+                                    ),
+                                    label: _isLoading
+                                        ? Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.grey[600],
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              const Text('Conectando...'),
+                                            ],
+                                          )
+                                        : const Text(
+                                            'Continuar con Google',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.grey[700],
+                                      side: BorderSide(color: Colors.grey[300]!),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                // Botón para cambiar entre login y registro
+                                TextButton(
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      _isLoginMode = !_isLoginMode;
+                                    });
+                                  },
+                                  child: Text(
+                                    _isLoginMode 
+                                        ? '¿No tienes cuenta? Regístrate'
+                                        : '¿Ya tienes cuenta? Inicia sesión',
+                                    style: TextStyle(
+                                      color: Color.fromRGBO(239, 120, 26, 1),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Botón de cancelar
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text(
+                                    'Cancelar',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   // Function to send email
@@ -530,15 +1149,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    // 1. Cargar los nombres de las carreras favoritas desde Firestore
-    final List<String> favoriteRaceNames = await FavoritesService.getFavoriteRaceNames();
-
-    // 2. Sincronizar el estado `isFavorite`
-    for (var race in parsedRaces) {
-      if (favoriteRaceNames.contains(race.name)) {
-        race.isFavorite = true;
-      }
-    }
+    // Cargar favoritos (Firebase o local según el estado de autenticación)
+    await _loadFavorites(parsedRaces);
 
     if (mounted) {
       setState(() {
@@ -546,6 +1158,44 @@ class _MyHomePageState extends State<MyHomePage> {
         _applyFilters(basicFilterChanged: true);
       });
     }
+  }
+
+  // Método unificado para cargar favoritos
+  Future<void> _loadFavorites(List<Race> races) async {
+    if (_isLoggedIn && _auth.currentUser != null) {
+      // Cargar desde Firestore
+      try {
+        final userDoc = _firestore.collection('users').doc(_auth.currentUser!.uid);
+        final favoritesSnapshot = await userDoc.collection('favorites').get();
+        
+        final favoriteNames = favoritesSnapshot.docs.map((doc) => doc.data()['raceName'] as String).toList();
+        
+        for (var race in races) {
+          race.isFavorite = favoriteNames.contains(race.name);
+        }
+        
+        debugPrint("Favoritos cargados desde Firestore: $favoriteNames");
+      } catch (e) {
+        debugPrint("Error al cargar favoritos desde Firestore: $e");
+        // Fallback a SharedPreferences si hay error
+        await _loadFavoritesFromLocal(races);
+      }
+    } else {
+      // Cargar desde SharedPreferences
+      await _loadFavoritesFromLocal(races);
+    }
+  }
+
+  // Cargar favoritos desde SharedPreferences
+  Future<void> _loadFavoritesFromLocal(List<Race> races) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> favoriteRaceNames = prefs.getStringList('favoriteRaces') ?? [];
+
+    for (var race in races) {
+      race.isFavorite = favoriteRaceNames.contains(race.name);
+    }
+    
+    debugPrint("Favoritos cargados localmente: $favoriteRaceNames");
   }
 
   void _applyFilters({bool basicFilterChanged = false}) {
@@ -607,17 +1257,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleShareRace(Race race) {
     if (race.registrationLink?.isNotEmpty ?? false) {
-      SharePlus.instance.share(
-        ShareParams(
-          text: '¡Échale un vistazo a esta carrera: ${race.name}!${race.registrationLink}',
-        ),
+      Share.share(
+        '¡Échale un vistazo a esta carrera: ${race.name}!${race.registrationLink}',
       );
     } else {
-      SharePlus.instance.share(
-        ShareParams(
-          text: '¡Échale un vistazo a esta carrera: ${race.name}!',
-        ),
-      );
+      Share.share('¡Échale un vistazo a esta carrera: ${race.name}!');
     }
   }
 
@@ -805,27 +1449,105 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: Icon(Icons.logout, color: Colors.red),
-                            title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
-                            onTap: () async {
-                              Navigator.pop(context); // Close the drawer
-                              try {
-                                await FirebaseAuth.instance.signOut();
-                                print("🚪 Usuario deslogueado exitosamente");
-                              } catch (e) {
-                                print("❌ Error al cerrar sesión: $e");
+                          // Sección de autenticación
+                          if (_isLoggedIn) ...[
+                            // Usuario logueado - mostrar info y logout
+                            ListTile(
+                              leading: _userPhotoURL != null && _userPhotoURL!.isNotEmpty
+                                  ? CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: NetworkImage(_userPhotoURL!),
+                                      backgroundColor: Colors.grey[300],
+                                      onBackgroundImageError: (exception, stackTrace) {
+                                        debugPrint('Error cargando imagen de perfil: $exception');
+                                      },
+                                    )
+                                  : const CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: Colors.green,
+                                      child: Icon(Icons.account_circle, color: Colors.white, size: 24),
+                                    ),
+                              title: Text(
+                                'Conectado como:',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              ),
+                              subtitle: Text(
+                                _userDisplayName?.isNotEmpty == true 
+                                    ? _userDisplayName! 
+                                    : _userEmail ?? 'Usuario',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.logout, color: Colors.red),
+                              title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                              onTap: () async {
+                                Navigator.pop(context); // Cerrar drawer
+                                
+                                // Mostrar notificación de que se está cerrando sesión
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text('Cerrando sesión...'),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    margin: const EdgeInsets.all(16),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                                
+                                await _logout();
+                                
+                                // Mostrar notificación de éxito
                                 if (context.mounted) {
+                                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Error al cerrar sesión'),
-                                      backgroundColor: Colors.red,
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle, color: Colors.white),
+                                          const SizedBox(width: 8),
+                                          const Text('Sesión cerrada exitosamente'),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      margin: const EdgeInsets.all(16),
                                     ),
                                   );
                                 }
-                              }
-                            },
-                          ),
+                              },
+                            ),
+                          ] else ...[
+                            // Usuario no logueado - mostrar login
+                            ListTile(
+                              leading: const Icon(Icons.login, color: Colors.blue),
+                              title: const Text('Iniciar Sesión', style: TextStyle(color: Colors.blue)),
+                              subtitle: const Text('Sincroniza tus favoritos', style: TextStyle(fontSize: 12)),
+                              onTap: () {
+                                Navigator.pop(context); // Cerrar drawer primero
+                                _showAuthDialog(); // Mostrar el diálogo bonito
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),

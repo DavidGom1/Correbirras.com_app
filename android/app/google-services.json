@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1053599538056-9aklvpimd741hjreh0lio25rdjl21koi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "772e3ca6e22bdcbbd9a4e3546323ffcc04e6009a"
+          }
+        },
+        {
           "client_id": "1053599538056-qrl0htmkgf0itep5kci3hunso7f2mfl8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -1,18 +1,17 @@
-// Configuración para Google Services plugin
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 buildscript {
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.google.gms:google-services:4.4.2")
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
+        classpath("com.google.gms:google-services:4.4.0")
     }
 }
 

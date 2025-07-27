@@ -74,6 +74,8 @@ android {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.6.0")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
 
 flutter {
