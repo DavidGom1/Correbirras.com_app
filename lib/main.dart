@@ -11,6 +11,11 @@ import 'package:correbirras/favorites_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:correbirras/auth_screen.dart';
+import 'package:correbirras/favorites_service.dart';
 
 const List<String> meseses = [
   "enero",
@@ -128,7 +133,18 @@ class RotatingIconState extends State<RotatingIcon>
   }
 }
 
-void main() {
+void main() async {
+  // Aseguramos que Flutter esté completamente inicializado
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    // Inicializamos Firebase
+    await Firebase.initializeApp();
+    print("🔥 Firebase inicializado correctamente");
+  } catch (e) {
+    print("❌ Error al inicializar Firebase: $e");
+  }
+  
   runApp(const MyApp());
 }
 
@@ -144,7 +160,46 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: correbirrasBackground,
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Correbirras.com'),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+// Widget que maneja el estado de autenticación
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  Future<void> _handleUserLogin() async {
+    // Migrar favoritos locales a Firestore cuando el usuario se loguea
+    await FavoritesService.migrateLocalFavoritesToFirestore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Mostramos loading mientras se verifica el estado
+          return const Scaffold(
+            backgroundColor: Color(0xFFf9f9f9),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Color.fromRGBO(239, 120, 26, 1),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasData) {
+          // Usuario está logueado, migrar favoritos y mostrar la app principal
+          _handleUserLogin();
+          return const MyHomePage(title: 'Correbirras.com');
+        } else {
+          // Usuario no está logueado, mostrar pantalla de login
+          return const AuthScreen();
+        }
+      },
     );
   }
 }
@@ -257,33 +312,35 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _toggleFavorite(Race race) async {
-    // 1. Obtenemos la instancia de SharedPreferences
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // 2. Leemos la lista actual de favoritos (si no existe, creamos una vacía)
-    final List<String> favoriteRaces =
-        prefs.getStringList('favoriteRaces') ?? [];
-
-    // Invertimos el estado en el objeto actual para la UI inmediata
+    // Cambiar estado inmediatamente en la UI para responsividad
     setState(() {
       race.isFavorite = !race.isFavorite;
     });
 
-    // 3. Modificamos la lista
+    // Guardar/eliminar en Firestore
+    bool success;
     if (race.isFavorite) {
-      // Si ahora es favorito, lo añadimos a la lista si no estaba ya
-      if (!favoriteRaces.contains(race.name)) {
-        favoriteRaces.add(race.name);
-      }
+      success = await FavoritesService.addFavorite(race.name);
     } else {
-      // Si ya no es favorito, lo eliminamos de la lista
-      favoriteRaces.remove(race.name);
+      success = await FavoritesService.removeFavorite(race.name);
     }
 
-    // 4. Guardamos la lista actualizada en SharedPreferences
-    await prefs.setStringList('favoriteRaces', favoriteRaces);
-
-    debugPrint("Favoritos guardados: $favoriteRaces");
+    // Si falló la operación, revertir el cambio en la UI
+    if (!success) {
+      setState(() {
+        race.isFavorite = !race.isFavorite;
+      });
+      
+      // Mostrar mensaje de error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al actualizar favoritos'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Function to send email
@@ -473,10 +530,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    // 1. Cargar los nombres de las carreras favoritas
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final List<String> favoriteRaceNames =
-        prefs.getStringList('favoriteRaces') ?? [];
+    // 1. Cargar los nombres de las carreras favoritas desde Firestore
+    final List<String> favoriteRaceNames = await FavoritesService.getFavoriteRaceNames();
 
     // 2. Sincronizar el estado `isFavorite`
     for (var race in parsedRaces) {
@@ -552,11 +607,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleShareRace(Race race) {
     if (race.registrationLink?.isNotEmpty ?? false) {
-      Share.share(
-        '¡Échale un vistazo a esta carrera: ${race.name}!${race.registrationLink}',
+      SharePlus.instance.share(
+        ShareParams(
+          text: '¡Échale un vistazo a esta carrera: ${race.name}!${race.registrationLink}',
+        ),
       );
     } else {
-      Share.share('¡Échale un vistazo a esta carrera: ${race.name}!');
+      SharePlus.instance.share(
+        ShareParams(
+          text: '¡Échale un vistazo a esta carrera: ${race.name}!',
+        ),
+      );
     }
   }
 
@@ -741,6 +802,28 @@ class _MyHomePageState extends State<MyHomePage> {
                             onTap: () {
                               Navigator.pop(context); // Close the drawer
                               _rateApp(); // New function to rate the app
+                            },
+                          ),
+                          const Divider(),
+                          ListTile(
+                            leading: Icon(Icons.logout, color: Colors.red),
+                            title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                            onTap: () async {
+                              Navigator.pop(context); // Close the drawer
+                              try {
+                                await FirebaseAuth.instance.signOut();
+                                print("🚪 Usuario deslogueado exitosamente");
+                              } catch (e) {
+                                print("❌ Error al cerrar sesión: $e");
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Error al cerrar sesión'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                             },
                           ),
                         ],

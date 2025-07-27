@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "1053599538056",
+    "project_id": "appcorrebirras",
+    "storage_bucket": "appcorrebirras.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1053599538056:android:e7043176b4851373faf83d",
+        "android_client_info": {
+          "package_name": "com.correbirras.agenda"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1053599538056-qrl0htmkgf0itep5kci3hunso7f2mfl8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "d3ca00f12a812e59b62f380e6bd1765ec9f972b8"
+          }
+        },
+        {
+          "client_id": "1053599538056-r2kn7qi6dperoattn2bqmer16s1akbsc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "a8bc4b4147d7653f8fb5d1768cea478b1e524d71"
+          }
+        },
+        {
+          "client_id": "1053599538056-s4ask7gc47rsmt414vnrge6fkffmpe5i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx_aQQHIs2RD4wIDawXli9g8fcfjo_h1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1053599538056-s4ask7gc47rsmt414vnrge6fkffmpe5i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1053599538056-tjp6nk136gkh6q0jm4e43gd2i8u0oa2t.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
