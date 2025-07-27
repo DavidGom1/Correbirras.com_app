@@ -39,15 +39,8 @@ out/
 /ios/Flutter/ephemeral
 
 # Android
-.gradle/
-/android/app/src/main/assets/flutter_assets/
-/android/key.properties
-/android/local.properties
-/android/captures/
 *.hprof
-*.keystore
 *.jks
-key.properties
 
 # Web
 /web/build/
