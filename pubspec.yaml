@@ -1,7 +1,7 @@
 name: correbirras
 description: "Agenda de carreras Correbirras"
 publish_to: 'none'
-version: 1.0.0+8
+version: 1.0.0+9
 
 environment:
   sdk: ^3.8.0-278.1.beta
@@ -22,6 +22,7 @@ dependencies:
   cloud_firestore: ^4.13.6
   google_sign_in: ^6.1.5
   flutter_staggered_grid_view: ^0.7.0
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:

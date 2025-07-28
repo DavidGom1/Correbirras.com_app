@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import '../services/util_service.dart';
 import '../utils/notification_utils.dart';
+import '../core/theme/theme_provider.dart';
 
 class AppDrawer extends StatelessWidget {
   final bool isLoggedIn;
@@ -43,7 +45,11 @@ class AppDrawer extends StatelessWidget {
                 : onAuthTap, // Solo clickeable si no está logueado
             child: Container(
               padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Color.fromRGBO(239, 120, 26, 1)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Color.fromRGBO(180, 90, 20, 1) // Color más suave para tema oscuro
+                    : Color.fromRGBO(239, 120, 26, 1), // Color original para tema claro
+              ),
               child: Column(
                 children: [
                   // Título "Menú"
@@ -157,6 +163,27 @@ class AppDrawer extends StatelessWidget {
                   onTap: onFavoritesTap,
                 ),
                 
+                // ListTile para cambiar tema
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, child) {
+                    return ListTile(
+                      leading: Icon(
+                        themeProvider.themeMode == ThemeMode.dark
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                      ),
+                      title: Text(
+                        themeProvider.themeMode == ThemeMode.dark
+                            ? 'Modo Claro'
+                            : 'Modo Oscuro',
+                      ),
+                      onTap: () {
+                        themeProvider.toggleTheme();
+                      },
+                    );
+                  },
+                ),
+                
                 // Línea divisoria moderna
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -222,7 +249,9 @@ class AppDrawer extends StatelessWidget {
                     width: 40,
                     height: 40,
                     colorFilter: ColorFilter.mode(
-                      Color.fromRGBO(239, 120, 26, 1),
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Color.fromRGBO(180, 90, 20, 1)
+                          : Color.fromRGBO(239, 120, 26, 1),
                       BlendMode.srcIn,
                     ),
                   ),
@@ -239,7 +268,9 @@ class AppDrawer extends StatelessWidget {
                     width: 30,
                     height: 30,
                     colorFilter: ColorFilter.mode(
-                      Color.fromRGBO(239, 120, 26, 1),
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Color.fromRGBO(180, 90, 20, 1)
+                          : Color.fromRGBO(239, 120, 26, 1),
                       BlendMode.srcIn,
                     ),
                   ),
@@ -265,7 +296,9 @@ class AppDrawer extends StatelessWidget {
                   onPressed: () =>
                       utilService.launchURL('https://t.me/dagodev'),
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(101, 239, 118, 26),
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Color.fromARGB(101, 180, 90, 20)
+                        : Color.fromARGB(101, 239, 118, 26),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
                     ),
@@ -314,14 +347,18 @@ class AppDrawer extends StatelessWidget {
             children: [
               Icon(
                 Icons.logout,
-                color: Color.fromRGBO(239, 120, 26, 1),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Color.fromRGBO(180, 90, 20, 1)
+                    : Color.fromRGBO(239, 120, 26, 1),
                 size: 24,
               ),
               SizedBox(width: 8),
               Text(
                 'Cerrar Sesión',
                 style: TextStyle(
-                  color: Color.fromRGBO(239, 120, 26, 1),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Color.fromRGBO(180, 90, 20, 1)
+                      : Color.fromRGBO(239, 120, 26, 1),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -346,7 +383,9 @@ class AppDrawer extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Color.fromRGBO(180, 90, 20, 1)
+                    : Color.fromRGBO(239, 120, 26, 1),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
