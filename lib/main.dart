@@ -67,7 +67,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isLoading = true;
   List<Race> _allRaces = [];
   List<Race> _filteredRaces = [];
-  List<String>? _pendingFavoriteNames; // Para guardar favoritos cuando las carreras no están cargadas
+  List<String>?
+  _pendingFavoriteNames; // Para guardar favoritos cuando las carreras no están cargadas
   String? _selectedMonth;
   String? _selectedZone;
   String? _selectedType;
@@ -93,9 +94,11 @@ class _MyHomePageState extends State<MyHomePage> {
       const SystemUiOverlayStyle(
         statusBarColor: Color.fromRGBO(239, 120, 26, 1),
         statusBarIconBrightness: Brightness.light,
-        systemStatusBarContrastEnforced: true,
+        statusBarBrightness: Brightness.dark,
         systemNavigationBarColor: Color.fromRGBO(239, 120, 26, 1),
         systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Color.fromRGBO(239, 120, 26, 1),
+        systemNavigationBarContrastEnforced: false, // ← CLAVE
       ),
     );
 
@@ -366,20 +369,26 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _applyFilters({bool basicFilterChanged = false, bool manualDistanceChange = false}) {
+  void _applyFilters({
+    bool basicFilterChanged = false,
+    bool manualDistanceChange = false,
+  }) {
     // Primero filtrar por criterios básicos (mes, zona, tipo, terreno)
     List<Race> basicFilteredRaces = _allRaces.where((race) {
       final matchMonth = _selectedMonth == null || race.month == _selectedMonth;
       final matchZone = _selectedZone == null || race.zone == _selectedZone;
       final matchType = _selectedType == null || race.type == _selectedType;
-      final matchTerrain = _selectedTerrain == null || race.terrain == _selectedTerrain;
+      final matchTerrain =
+          _selectedTerrain == null || race.terrain == _selectedTerrain;
       return matchMonth && matchZone && matchType && matchTerrain;
     }).toList();
 
     // Calcular el nuevo rango de distancias basado en las carreras filtradas por criterios básicos
     double newMin = 0;
     double newMax = 0;
-    final filteredDistances = basicFilteredRaces.expand((race) => race.distances).toList();
+    final filteredDistances = basicFilteredRaces
+        .expand((race) => race.distances)
+        .toList();
     if (filteredDistances.isNotEmpty) {
       newMin = filteredDistances.reduce((a, b) => a < b ? a : b).toDouble();
       newMax = filteredDistances.reduce((a, b) => a > b ? a : b).toDouble();
@@ -395,7 +404,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // Ajustar el rango seleccionado si está fuera de los nuevos límites
       double adjustedStart = _selectedDistanceRange.start;
       double adjustedEnd = _selectedDistanceRange.end;
-      
+
       // Asegurar que tenemos un rango válido antes de ajustar
       if (newMin <= newMax) {
         // Para el mínimo: si el nuevo mínimo es menor, expandir automáticamente hacia abajo
@@ -407,7 +416,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // Ajustar al nuevo límite si se ha quedado fuera
           adjustedStart = newMin;
         }
-        
+
         // Para el máximo: si el nuevo máximo es mayor, expandir automáticamente
         // Si el nuevo máximo es menor, ajustar al nuevo límite
         if (newMax > _selectedDistanceRange.end) {
@@ -417,12 +426,12 @@ class _MyHomePageState extends State<MyHomePage> {
           // Ajustar al nuevo límite si se ha quedado fuera
           adjustedEnd = newMax;
         }
-        
+
         // Validación final para asegurar que start <= end y están dentro de los límites
         if (adjustedStart > newMax) adjustedStart = newMax;
         if (adjustedEnd < newMin) adjustedEnd = newMin;
         if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-        
+
         newDistanceRange = RangeValues(adjustedStart, adjustedEnd);
       } else {
         // Si no hay un rango válido (newMin > newMax), usar valores por defecto
@@ -432,7 +441,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // Es un cambio manual del slider, solo validar que esté dentro de los límites
       double adjustedStart = _selectedDistanceRange.start;
       double adjustedEnd = _selectedDistanceRange.end;
-      
+
       if (newMin <= newMax) {
         // Solo ajustar si está fuera de los límites, sin expandir automáticamente
         if (adjustedStart < newMin) adjustedStart = newMin;
@@ -440,19 +449,22 @@ class _MyHomePageState extends State<MyHomePage> {
         if (adjustedEnd < newMin) adjustedEnd = newMin;
         if (adjustedEnd > newMax) adjustedEnd = newMax;
         if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-        
+
         newDistanceRange = RangeValues(adjustedStart, adjustedEnd);
       }
     }
 
     // Aplicar el filtro de distancia sobre las carreras ya filtradas por criterios básicos
     List<Race> finalFilteredRaces = List.from(basicFilteredRaces);
-    if (newMax > 0 && (newDistanceRange.start > newMin || newDistanceRange.end < newMax)) {
+    if (newMax > 0 &&
+        (newDistanceRange.start > newMin || newDistanceRange.end < newMax)) {
       finalFilteredRaces = finalFilteredRaces.where((race) {
         if (race.distances.isEmpty) {
           return false;
         }
-        return race.distances.any((d) => d >= newDistanceRange.start && d <= newDistanceRange.end);
+        return race.distances.any(
+          (d) => d >= newDistanceRange.start && d <= newDistanceRange.end,
+        );
       }).toList();
     }
 
@@ -461,21 +473,21 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         _filteredMinDistance = newMin;
         _filteredMaxDistance = newMax;
-        
+
         // Asegurar que el rango seleccionado esté dentro de los límites válidos
         double finalMin = newMin;
         double finalMax = newMax > newMin ? newMax : newMin + 1;
-        
+
         // Validar y ajustar el rango seleccionado
         double adjustedStart = newDistanceRange.start;
         double adjustedEnd = newDistanceRange.end;
-        
+
         if (adjustedStart < finalMin) adjustedStart = finalMin;
         if (adjustedStart > finalMax) adjustedStart = finalMax;
         if (adjustedEnd < finalMin) adjustedEnd = finalMin;
         if (adjustedEnd > finalMax) adjustedEnd = finalMax;
         if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-        
+
         _selectedDistanceRange = RangeValues(adjustedStart, adjustedEnd);
         _filteredRaces = finalFilteredRaces;
       });
@@ -544,10 +556,6 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Scaffold(
               appBar: AppBar(
                 elevation: 0,
-                systemOverlayStyle: SystemUiOverlayStyle(
-                  statusBarColor: Color.fromRGBO(239, 120, 26, 1),
-                  statusBarIconBrightness: Brightness.light,
-                ),
                 shadowColor: const Color.fromARGB(186, 0, 0, 0),
                 backgroundColor: Color.fromRGBO(239, 120, 26, 1),
                 foregroundColor: Colors.white,

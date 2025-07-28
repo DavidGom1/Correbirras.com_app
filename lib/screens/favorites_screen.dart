@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:correbirras/models/race.dart';
 
@@ -32,21 +31,6 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Color.fromRGBO(239, 120, 26, 1),
-        statusBarIconBrightness: Brightness.light,
-        systemStatusBarContrastEnforced: true,
-        systemNavigationBarColor: Color.fromRGBO(
-          239,
-          120,
-          26,
-          1,
-        ), // Esta línea configura la barra inferior
-        systemNavigationBarIconBrightness: Brightness
-            .light, // Esta línea configura los iconos de la barra inferior
-      ),
-    );
     _filterFavoriteRaces();
   }
 
