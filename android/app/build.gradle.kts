@@ -42,6 +42,7 @@ android {
         targetSdk = 35
         versionCode = flutterVersionCode.toString().toInt()
         versionName = flutterVersionName
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -66,16 +67,19 @@ android {
             if (releaseSigningConfig.storeFile != null) {
                 signingConfig = releaseSigningConfig
             }
-            isMinifyEnabled = true // <-- Cambiado a true
-            isShrinkResources = true // <-- Cambiado a true
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.6.0")
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("androidx.multidex:multidx:2.0.1")
+    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
 }
 
 flutter {
