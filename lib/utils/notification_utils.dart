@@ -106,7 +106,7 @@ class NotificationUtils {
     if (!context.mounted) return;
 
     final overlay = Overlay.of(context);
-    
+
     _currentOverlay = OverlayEntry(
       builder: (context) => _NotificationOverlay(
         message: message,
@@ -182,21 +182,17 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.elasticOut,
+          ),
+        );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
 
     _animationController.forward();
   }
@@ -240,11 +236,7 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
               ),
               child: Row(
                 children: [
-                  Icon(
-                    widget.icon,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  Icon(widget.icon, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -266,8 +258,8 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
                           widget.message,
                           style: TextStyle(
                             fontSize: widget.title != null ? 14 : 16,
-                            fontWeight: widget.title != null 
-                                ? FontWeight.normal 
+                            fontWeight: widget.title != null
+                                ? FontWeight.normal
                                 : FontWeight.w500,
                             color: Colors.white,
                           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:correbirras/models/race.dart';
+import '../core/theme/app_theme.dart';
 
 // Define los tipos de funciones que pasaremos
 typedef ToggleFavoriteCallback = Future<void> Function(Race race);
@@ -213,7 +214,10 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.favorite,
-                          color: Color.fromRGBO(239, 120, 26, 1),
+                          color: AppTheme.getFavoriteColor(
+                            context,
+                            true,
+                          ), // Usar color dinámico
                           size: 30,
                         ),
                         onPressed: () {
@@ -246,13 +250,15 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     );
 
     return Container(
-      color: Color.fromRGBO(239, 120, 26, 1),
+      color: AppTheme.getControlColor(context), // Usar color dinámico
       child: SafeArea(
         child: Scaffold(
           appBar: AppBar(
             elevation: 0,
             shadowColor: const Color.fromARGB(186, 0, 0, 0),
-            backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+            backgroundColor: AppTheme.getControlColor(
+              context,
+            ), // Usar color dinámico
             foregroundColor: Colors.white,
             title: Text(
               'Favoritos',
@@ -282,7 +288,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color.fromRGBO(239, 120, 26, 1),
+                          backgroundColor: AppTheme.getControlColor(
+                            context,
+                          ), // Usar color dinámico
                           foregroundColor: Colors.white,
                         ),
                         child: Text('Explorar carreras'),

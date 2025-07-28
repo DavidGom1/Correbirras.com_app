@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/race.dart';
+import '../core/theme/app_theme.dart';
 
 class RaceCard extends StatelessWidget {
   final Race race;
@@ -132,9 +133,7 @@ class RaceCard extends StatelessWidget {
                           race.isFavorite
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: race.isFavorite
-                              ? const Color.fromRGBO(239, 120, 26, 1)
-                              : Colors.grey,
+                          color: AppTheme.getFavoriteColor(context, race.isFavorite),
                           size: 30,
                         ),
                         onPressed: onFavoriteToggle,

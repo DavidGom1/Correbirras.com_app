@@ -41,19 +41,20 @@ final Color correbirrasBackground = Color(0xFFf9f9f9);
 class CorrebirrasUpgraderMessages extends UpgraderMessages {
   @override
   String get buttonTitleUpdate => 'Actualizar Ahora';
-  
+
   @override
   String get buttonTitleLater => 'Más Tarde';
-  
+
   @override
-  String get prompt => 'Una nueva versión de Correbirras está disponible. ¿Te gustaría actualizar ahora?';
-  
+  String get prompt =>
+      'Una nueva versión de Correbirras está disponible. ¿Te gustaría actualizar ahora?';
+
   @override
   String get title => 'Actualización Disponible';
-  
+
   @override
   String get buttonTitleIgnore => 'Ignorar';
-  
+
   @override
   String get releaseNotes => 'Notas de la versión:';
 }
@@ -186,9 +187,8 @@ class _MyHomePageState extends State<MyHomePage> {
           26,
           1,
         ), // Color de la barra de estado (notificaciones)
-        statusBarIconBrightness:
-            Brightness
-                .light, // Color de los iconos de la barra de estado (oscuro o claro)
+        statusBarIconBrightness: Brightness
+            .light, // Color de los iconos de la barra de estado (oscuro o claro)
         systemStatusBarContrastEnforced: true,
         systemNavigationBarColor: Color.fromRGBO(
           239,
@@ -201,59 +201,58 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
     _downloadHtmlAndParse();
-    _controller =
-        WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..setBackgroundColor(const Color.fromARGB(0, 0, 0, 0))
-          ..setNavigationDelegate(
-            NavigationDelegate(
-              onPageStarted: (String url) {
-                setState(() {
-                  _isWebViewLoading = true;
-                });
-              },
-              onPageFinished: (String url) {
-                setState(() {
-                  _isWebViewLoading = false;
-                });
-              },
-              onNavigationRequest: (NavigationRequest request) {
-                final String url = request.url.toLowerCase();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color.fromARGB(0, 0, 0, 0))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isWebViewLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            setState(() {
+              _isWebViewLoading = false;
+            });
+          },
+          onNavigationRequest: (NavigationRequest request) {
+            final String url = request.url.toLowerCase();
 
-                final List<String> socialMediaDomains = [
-                  'facebook.com',
-                  'instagram.com',
-                  'twitter.com',
-                  'x.com', // Por si acaso usan el nuevo dominio de Twitter
-                  'youtube.com',
-                  'linkedin.com',
-                  'tiktok.com',
-                  // Añade aquí cualquier otra red social relevante
-                ];
+            final List<String> socialMediaDomains = [
+              'facebook.com',
+              'instagram.com',
+              'twitter.com',
+              'x.com', // Por si acaso usan el nuevo dominio de Twitter
+              'youtube.com',
+              'linkedin.com',
+              'tiktok.com',
+              // Añade aquí cualquier otra red social relevante
+            ];
 
-                if (request.url.toLowerCase().endsWith('.pdf')) {
-                  debugPrint('PDF link interceptado: ${request.url}');
-                  _launchURL(request.url); // Abrir externamente
-                  return NavigationDecision
-                      .prevent; // Prevenir navegación en WebView
-                }
+            if (request.url.toLowerCase().endsWith('.pdf')) {
+              debugPrint('PDF link interceptado: ${request.url}');
+              _launchURL(request.url); // Abrir externamente
+              return NavigationDecision
+                  .prevent; // Prevenir navegación en WebView
+            }
 
-                // Comprobar si es un enlace de red social
-                for (var domain in socialMediaDomains) {
-                  if (url.contains(domain)) {
-                    debugPrint('Enlace de red social interceptado: $url');
-                    _launchURL(url); // Abrir externamente
-                    _hideWebView();
-                    return NavigationDecision
-                        .prevent; // Prevenir navegación en WebView
-                  }
-                }
-
+            // Comprobar si es un enlace de red social
+            for (var domain in socialMediaDomains) {
+              if (url.contains(domain)) {
+                debugPrint('Enlace de red social interceptado: $url');
+                _launchURL(url); // Abrir externamente
+                _hideWebView();
                 return NavigationDecision
-                    .navigate; // Permitir navegación para el resto
-              },
-            ),
-          );
+                    .prevent; // Prevenir navegación en WebView
+              }
+            }
+
+            return NavigationDecision
+                .navigate; // Permitir navegación para el resto
+          },
+        ),
+      );
   }
 
   Future<void> _toggleFavorite(Race race) async {
@@ -494,21 +493,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _applyFilters({bool basicFilterChanged = false}) {
-    List<Race> basicFilteredRaces =
-        _allRaces.where((race) {
-          final matchMonth =
-              _selectedMonth == null || race.month == _selectedMonth;
-          final matchZone = _selectedZone == null || race.zone == _selectedZone;
-          final matchType = _selectedType == null || race.type == _selectedType;
-          final matchTerrain =
-              _selectedTerrain == null || race.terrain == _selectedTerrain;
-          return matchMonth && matchZone && matchType && matchTerrain;
-        }).toList();
+    List<Race> basicFilteredRaces = _allRaces.where((race) {
+      final matchMonth = _selectedMonth == null || race.month == _selectedMonth;
+      final matchZone = _selectedZone == null || race.zone == _selectedZone;
+      final matchType = _selectedType == null || race.type == _selectedType;
+      final matchTerrain =
+          _selectedTerrain == null || race.terrain == _selectedTerrain;
+      return matchMonth && matchZone && matchType && matchTerrain;
+    }).toList();
 
     double newMin = 0;
     double newMax = 0;
-    final filteredDistances =
-        basicFilteredRaces.expand((race) => race.distances).toList();
+    final filteredDistances = basicFilteredRaces
+        .expand((race) => race.distances)
+        .toList();
     if (filteredDistances.isNotEmpty) {
       newMin = filteredDistances.reduce((a, b) => a < b ? a : b).toDouble();
       newMax = filteredDistances.reduce((a, b) => a > b ? a : b).toDouble();
@@ -522,15 +520,14 @@ class _MyHomePageState extends State<MyHomePage> {
     List<Race> finalFilteredRaces = List.from(basicFilteredRaces);
     if (newMax > 0 &&
         (newDistanceRange.start > newMin || newDistanceRange.end < newMax)) {
-      finalFilteredRaces =
-          finalFilteredRaces.where((race) {
-            if (race.distances.isEmpty) {
-              return false;
-            }
-            return race.distances.any(
-              (d) => d >= newDistanceRange.start && d <= newDistanceRange.end,
-            );
-          }).toList();
+      finalFilteredRaces = finalFilteredRaces.where((race) {
+        if (race.distances.isEmpty) {
+          return false;
+        }
+        return race.distances.any(
+          (d) => d >= newDistanceRange.start && d <= newDistanceRange.end,
+        );
+      }).toList();
     }
 
     if (mounted) {
@@ -604,24 +601,24 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       color: Color.fromRGBO(239, 120, 26, 1),
       child: SafeArea(
-          child: PopScope<Object?>(
-            canPop: !_isWebViewVisible,
-            onPopInvokedWithResult: (bool didPop, Object? result) async {
-              if (!didPop && _isWebViewVisible) {
-                // Si se intenta pop y la vista web está visible
-                _hideWebView();
-              }
-              // Si didPop es true, el pop ya ha ocurrido: no hacemos nada
-            },
-            child: UpgradeAlert(
-              upgrader: Upgrader(
-                durationUntilAlertAgain: Duration(days: 3),
-                debugDisplayAlways: true,
-                countryCode: 'ES',
-                debugLogging: true,
-                messages: CorrebirrasUpgraderMessages(),
-              ),
-              child: Scaffold(
+        child: PopScope<Object?>(
+          canPop: !_isWebViewVisible,
+          onPopInvokedWithResult: (bool didPop, Object? result) async {
+            if (!didPop && _isWebViewVisible) {
+              // Si se intenta pop y la vista web está visible
+              _hideWebView();
+            }
+            // Si didPop es true, el pop ya ha ocurrido: no hacemos nada
+          },
+          child: UpgradeAlert(
+            upgrader: Upgrader(
+              durationUntilAlertAgain: Duration(days: 3),
+              debugDisplayAlways: true,
+              countryCode: 'ES',
+              debugLogging: true,
+              messages: CorrebirrasUpgraderMessages(),
+            ),
+            child: Scaffold(
               appBar: AppBar(
                 elevation: 0,
                 systemOverlayStyle: SystemUiOverlayStyle(
@@ -631,9 +628,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     26,
                     1,
                   ), // Color deseado
-                  statusBarIconBrightness:
-                      Brightness
-                          .light, // Los iconos de la barra de estado se verán blancos
+                  statusBarIconBrightness: Brightness
+                      .light, // Los iconos de la barra de estado se verán blancos
                 ),
                 shadowColor: const Color.fromARGB(186, 0, 0, 0),
                 backgroundColor: Color.fromRGBO(239, 120, 26, 1),
@@ -643,11 +639,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   builder: (BuildContext innerContext) {
                     return IconButton(
                       icon: const Icon(Icons.menu), // Menu icon
-                      onPressed:
-                          () =>
-                              Scaffold.of(
-                                innerContext,
-                              ).openDrawer(), // Open the new Drawer
+                      onPressed: () => Scaffold.of(
+                        innerContext,
+                      ).openDrawer(), // Open the new Drawer
                     );
                   },
                 ),
@@ -668,8 +662,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       builder: (BuildContext innerContext) {
                         return IconButton(
                           icon: const Icon(Icons.filter_alt_outlined),
-                          onPressed:
-                              () => Scaffold.of(innerContext).openEndDrawer(),
+                          onPressed: () =>
+                              Scaffold.of(innerContext).openEndDrawer(),
                         );
                       },
                     ),
@@ -703,7 +697,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 MaterialPageRoute(
                                   builder:
                                       (context) => // PASAR LAS FUNCIONES AQUÍ
-                                          FavoritesScreen(
+                                      FavoritesScreen(
                                         allRaces: _allRaces,
                                         toggleFavorite:
                                             _toggleFavorite, // Pasar la función
@@ -844,478 +838,362 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              endDrawer:
-                  _isWebViewVisible
-                      ? null
-                      : Drawer(
-                        child: Material(
-                          color: Colors.white,
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: <Widget>[
-                              Container(
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(239, 120, 26, 1),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Filtros',
-                                    style: drawersTextStyle,
-                                  ),
-                                ),
+              endDrawer: _isWebViewVisible
+                  ? null
+                  : Drawer(
+                      child: Material(
+                        color: Colors.white,
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: <Widget>[
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Color.fromRGBO(239, 120, 26, 1),
                               ),
-                              SizedBox(height: 20),
-                              ListTile(
-                                title: DropdownButton<String>(
-                                  isExpanded: true,
-                                  hint: const Text("Mes"),
-                                  value: _selectedMonth,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedMonth =
-                                          v; // 'v' será null si no se elige nada, o un mes si se elige.
-                                    });
-                                    _applyFilters(basicFilterChanged: true);
-                                  },
-                                  items:
-                                      availableMonths.map((m) {
-                                        // Asumimos que availableMonths es ahora ['enero', 'febrero', ...]
-                                        // Ya no contiene "all".
-                                        return DropdownMenuItem(
-                                          value: m,
-                                          child: Text(
-                                            m[0].toUpperCase() + m.substring(1),
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-                              ListTile(
-                                title: DropdownButton<String>(
-                                  isExpanded: true,
-                                  hint: const Text("Zona"),
-                                  value: _selectedZone,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedZone = v;
-                                    });
-                                    _applyFilters(basicFilterChanged: true);
-                                  },
-                                  items:
-                                      availableZones.map((z) {
-                                        return DropdownMenuItem(
-                                          value: z,
-                                          child: Text(
-                                            z[0].toUpperCase() + z.substring(1),
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-                              ListTile(
-                                title: DropdownButton<String>(
-                                  isExpanded: true,
-                                  hint: const Text("Tipo"),
-                                  value: _selectedType,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedType = v;
-                                    });
-                                    _applyFilters(basicFilterChanged: true);
-                                  },
-                                  items:
-                                      availableTypes.map((t) {
-                                        return DropdownMenuItem(
-                                          value: t,
-                                          child: Text(t),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-                              ListTile(
-                                title: DropdownButton<String>(
-                                  isExpanded: true,
-                                  hint: const Text("Terreno"),
-                                  value: _selectedTerrain,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedTerrain = v;
-                                    });
-                                    _applyFilters(basicFilterChanged: true);
-                                  },
-                                  items:
-                                      availableTerrains.map((t) {
-                                        return DropdownMenuItem(
-                                          value: t,
-                                          child: Text(t),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-                              ListTile(
-                                title: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Distancia '),
-                                    RangeSlider(
-                                      values: _selectedDistanceRange,
-                                      min: _filteredMinDistance,
-                                      max:
-                                          _filteredMaxDistance >
-                                                  _filteredMinDistance
-                                              ? _filteredMaxDistance
-                                              : _filteredMinDistance + 1,
-                                      divisions:
-                                          (_filteredMaxDistance >
-                                                  _filteredMinDistance)
-                                              ? ((_filteredMaxDistance -
-                                                          _filteredMinDistance) /
-                                                      1)
-                                                  .round()
-                                                  .clamp(1, 1000)
-                                              : null,
-                                      labels: RangeLabels(
-                                        '${_selectedDistanceRange.start.round().toString()}${'K'}',
-                                        '${_selectedDistanceRange.end.round().toString()}${'K'}',
-                                      ),
-                                      activeColor: Color.fromRGBO(
-                                        239,
-                                        120,
-                                        26,
-                                        1,
-                                      ),
-                                      inactiveColor: Colors.grey,
-                                      onChanged:
-                                          (values) => setState(
-                                            () =>
-                                                _selectedDistanceRange = values,
-                                          ),
-                                      onChangeEnd:
-                                          (values) => _applyFilters(
-                                            basicFilterChanged: false,
-                                          ),
-                                    ),
-                                    Container(
-                                      padding: EdgeInsets.only(bottom: 10),
-                                      child: Center(
-                                        child: Text(
-                                          "${_selectedDistanceRange.start.round()}K - ${_selectedDistanceRange.end.round()}K",
-                                        ),
-                                      ),
-                                    ),
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: TextButton(
-                                        style: ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStateProperty.resolveWith<
-                                                Color?
-                                              >((Set<WidgetState> states) {
-                                                if (states.contains(
-                                                  WidgetState.pressed,
-                                                )) {
-                                                  return Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                      .withValues(alpha: 0.8);
-                                                }
-                                                if (states.contains(
-                                                  WidgetState.hovered,
-                                                )) {
-                                                  return Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                      .withValues(alpha: 0.9);
-                                                }
-                                                return Color.fromRGBO(
-                                                  239,
-                                                  120,
-                                                  26,
-                                                  1,
-                                                );
-                                              }),
-                                          foregroundColor:
-                                              WidgetStateProperty.resolveWith<
-                                                Color?
-                                              >((Set<WidgetState> states) {
-                                                return Colors.white;
-                                              }),
-                                          shape: WidgetStateProperty.all<
-                                            RoundedRectangleBorder
-                                          >(
-                                            RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(18.0),
-                                            ),
-                                          ),
-                                          padding: WidgetStateProperty.all<
-                                            EdgeInsets
-                                          >(
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 24,
-                                              vertical: 12,
-                                            ),
-                                          ),
-                                          elevation:
-                                              WidgetStateProperty.resolveWith<
-                                                double?
-                                              >((Set<WidgetState> states) {
-                                                if (states.contains(
-                                                  WidgetState.pressed,
-                                                )) {
-                                                  return 2.0;
-                                                }
-                                                return 5.0;
-                                              }),
-                                          textStyle: WidgetStateProperty.all<
-                                            TextStyle
-                                          >(
-                                            const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          overlayColor:
-                                              WidgetStateProperty.resolveWith<
-                                                Color?
-                                              >((Set<WidgetState> states) {
-                                                if (states.contains(
-                                                  WidgetState.hovered,
-                                                )) {
-                                                  return Colors.white
-                                                      .withValues(alpha: 0.08);
-                                                }
-                                                if (states.contains(
-                                                      WidgetState.focused,
-                                                    ) ||
-                                                    states.contains(
-                                                      WidgetState.pressed,
-                                                    )) {
-                                                  return Colors.white
-                                                      .withValues(alpha: 0.24);
-                                                }
-                                                return null;
-                                              }),
-                                        ),
-                                        onPressed: _resetAllFilters,
-                                        child: const Text(
-                                          'Restablecer filtros',
-                                          style: TextStyle(fontSize: 16),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-              body:
-                  _isLoading
-                      ? Center(
-                        child: RotatingIcon(
-                          imagePath: 'assets/images/rotation_icon.png',
-                        ),
-                      )
-                      : _isWebViewVisible
-                      ? Stack(
-                        children: [
-                          if (!_isWebViewLoading)
-                            WebViewWidget(controller: _controller),
-                          if (_isWebViewLoading)
-                            Center(
-                              child: RotatingIcon(
-                                imagePath: 'assets/images/rotation_icon.png',
+                              child: Center(
+                                child: Text('Filtros', style: drawersTextStyle),
                               ),
                             ),
-                        ],
-                      )
-                      : _filteredRaces.isEmpty
-                      ? const Center(
-                        child: Text(
-                          "No hay carreras para mostrar con los filtros seleccionados.",
-                        ),
-                      )
-                      : LayoutBuilder(
-                        builder: (
-                          BuildContext context,
-                          BoxConstraints constraints,
-                        ) {
-                          const double tabletBreakpoint = 600.0;
-                          const double cardWidthForGridReference = 350.0;
-
-                          Widget buildRaceItemWidget(
-                            Race race,
-                            bool isGridView,
-                          ) {
-                            // --- Variables de configuración ---
-                            final double cardHorizontalMargin =
-                                isGridView ? 8.0 : 16.0;
-                            final double cardPadding = isGridView ? 12.0 : 16.0;
-                            final int titleMaxLines = isGridView ? 2 : 1;
-                            final double titleFontSize =
-                                isGridView ? 15.0 : 16.0;
-                            final TextStyle resultRaceStyle = TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[800],
-                              fontWeight: FontWeight.w400,
-                            );
-                            final TextStyle labelStyle = const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            );
-
-                            return InkWell(
-                              onTap: () {
-                                if (race.registrationLink?.isNotEmpty ??
-                                    false) {
-                                  _showRaceInWebView(race.registrationLink!);
-                                } else {
-                                  debugPrint(
-                                    'No se encontró enlace para ${race.name}',
+                            SizedBox(height: 20),
+                            ListTile(
+                              title: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Text("Mes"),
+                                value: _selectedMonth,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _selectedMonth =
+                                        v; // 'v' será null si no se elige nada, o un mes si se elige.
+                                  });
+                                  _applyFilters(basicFilterChanged: true);
+                                },
+                                items: availableMonths.map((m) {
+                                  // Asumimos que availableMonths es ahora ['enero', 'febrero', ...]
+                                  // Ya no contiene "all".
+                                  return DropdownMenuItem(
+                                    value: m,
+                                    child: Text(
+                                      m[0].toUpperCase() + m.substring(1),
+                                    ),
                                   );
-                                }
-                              },
-                              child: Card(
-                                margin: EdgeInsets.symmetric(
-                                  horizontal: cardHorizontalMargin,
-                                  vertical: 6.0,
-                                ),
-                                elevation: 2.0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                child: Padding(
-                                  padding: EdgeInsets.all(cardPadding),
-                                  // AHORA: Usamos una Row principal para separar el contenido y el icono
-                                  child: IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // 1. Contenido principal que se expande
-                                        Expanded(
-                                          flex: 8,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Nombre de la carrera
-                                              Text(
-                                                race.name,
-                                                maxLines: titleMaxLines,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: titleFontSize,
-                                                ),
+                                }).toList(),
+                              ),
+                            ),
+                            ListTile(
+                              title: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Text("Zona"),
+                                value: _selectedZone,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _selectedZone = v;
+                                  });
+                                  _applyFilters(basicFilterChanged: true);
+                                },
+                                items: availableZones.map((z) {
+                                  return DropdownMenuItem(
+                                    value: z,
+                                    child: Text(
+                                      z[0].toUpperCase() + z.substring(1),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            ListTile(
+                              title: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Text("Tipo"),
+                                value: _selectedType,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _selectedType = v;
+                                  });
+                                  _applyFilters(basicFilterChanged: true);
+                                },
+                                items: availableTypes.map((t) {
+                                  return DropdownMenuItem(
+                                    value: t,
+                                    child: Text(t),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            ListTile(
+                              title: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Text("Terreno"),
+                                value: _selectedTerrain,
+                                onChanged: (v) {
+                                  setState(() {
+                                    _selectedTerrain = v;
+                                  });
+                                  _applyFilters(basicFilterChanged: true);
+                                },
+                                items: availableTerrains.map((t) {
+                                  return DropdownMenuItem(
+                                    value: t,
+                                    child: Text(t),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            ListTile(
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Distancia '),
+                                  RangeSlider(
+                                    values: _selectedDistanceRange,
+                                    min: _filteredMinDistance,
+                                    max:
+                                        _filteredMaxDistance >
+                                            _filteredMinDistance
+                                        ? _filteredMaxDistance
+                                        : _filteredMinDistance + 1,
+                                    divisions:
+                                        (_filteredMaxDistance >
+                                            _filteredMinDistance)
+                                        ? ((_filteredMaxDistance -
+                                                      _filteredMinDistance) /
+                                                  1)
+                                              .round()
+                                              .clamp(1, 1000)
+                                        : null,
+                                    labels: RangeLabels(
+                                      '${_selectedDistanceRange.start.round().toString()}${'K'}',
+                                      '${_selectedDistanceRange.end.round().toString()}${'K'}',
+                                    ),
+                                    activeColor: Color.fromRGBO(
+                                      239,
+                                      120,
+                                      26,
+                                      1,
+                                    ),
+                                    inactiveColor: Colors.grey,
+                                    onChanged: (values) => setState(
+                                      () => _selectedDistanceRange = values,
+                                    ),
+                                    onChangeEnd: (values) => _applyFilters(
+                                      basicFilterChanged: false,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: EdgeInsets.only(bottom: 10),
+                                    child: Center(
+                                      child: Text(
+                                        "${_selectedDistanceRange.start.round()}K - ${_selectedDistanceRange.end.round()}K",
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: TextButton(
+                                      style: ButtonStyle(
+                                        backgroundColor:
+                                            WidgetStateProperty.resolveWith<
+                                              Color?
+                                            >((Set<WidgetState> states) {
+                                              if (states.contains(
+                                                WidgetState.pressed,
+                                              )) {
+                                                return Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withValues(alpha: 0.8);
+                                              }
+                                              if (states.contains(
+                                                WidgetState.hovered,
+                                              )) {
+                                                return Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withValues(alpha: 0.9);
+                                              }
+                                              return Color.fromRGBO(
+                                                239,
+                                                120,
+                                                26,
+                                                1,
+                                              );
+                                            }),
+                                        foregroundColor:
+                                            WidgetStateProperty.resolveWith<
+                                              Color?
+                                            >((Set<WidgetState> states) {
+                                              return Colors.white;
+                                            }),
+                                        shape:
+                                            WidgetStateProperty.all<
+                                              RoundedRectangleBorder
+                                            >(
+                                              RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(18.0),
                                               ),
+                                            ),
+                                        padding:
+                                            WidgetStateProperty.all<EdgeInsets>(
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                                vertical: 12,
+                                              ),
+                                            ),
+                                        elevation:
+                                            WidgetStateProperty.resolveWith<
+                                              double?
+                                            >((Set<WidgetState> states) {
+                                              if (states.contains(
+                                                WidgetState.pressed,
+                                              )) {
+                                                return 2.0;
+                                              }
+                                              return 5.0;
+                                            }),
+                                        textStyle:
+                                            WidgetStateProperty.all<TextStyle>(
+                                              const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                        overlayColor:
+                                            WidgetStateProperty.resolveWith<
+                                              Color?
+                                            >((Set<WidgetState> states) {
+                                              if (states.contains(
+                                                WidgetState.hovered,
+                                              )) {
+                                                return Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                );
+                                              }
+                                              if (states.contains(
+                                                    WidgetState.focused,
+                                                  ) ||
+                                                  states.contains(
+                                                    WidgetState.pressed,
+                                                  )) {
+                                                return Colors.white.withValues(
+                                                  alpha: 0.24,
+                                                );
+                                              }
+                                              return null;
+                                            }),
+                                      ),
+                                      onPressed: _resetAllFilters,
+                                      child: const Text(
+                                        'Restablecer filtros',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              body: _isLoading
+                  ? Center(
+                      child: RotatingIcon(
+                        imagePath: 'assets/images/rotation_icon.png',
+                      ),
+                    )
+                  : _isWebViewVisible
+                  ? Stack(
+                      children: [
+                        if (!_isWebViewLoading)
+                          WebViewWidget(controller: _controller),
+                        if (_isWebViewLoading)
+                          Center(
+                            child: RotatingIcon(
+                              imagePath: 'assets/images/rotation_icon.png',
+                            ),
+                          ),
+                      ],
+                    )
+                  : _filteredRaces.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No hay carreras para mostrar con los filtros seleccionados.",
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (BuildContext context, BoxConstraints constraints) {
+                        const double tabletBreakpoint = 600.0;
+                        const double cardWidthForGridReference = 350.0;
 
-                                              // Separador
-                                              const SizedBox(height: 8.0),
+                        Widget buildRaceItemWidget(Race race, bool isGridView) {
+                          // --- Variables de configuración ---
+                          final double cardHorizontalMargin = isGridView
+                              ? 8.0
+                              : 16.0;
+                          final double cardPadding = isGridView ? 12.0 : 16.0;
+                          final int titleMaxLines = isGridView ? 2 : 1;
+                          final double titleFontSize = isGridView ? 15.0 : 16.0;
+                          final TextStyle resultRaceStyle = TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey[800],
+                            fontWeight: FontWeight.w400,
+                          );
+                          final TextStyle labelStyle = const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          );
 
-                                              // Fecha
-                                              if (race.date?.isNotEmpty ??
-                                                  false)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 4.0,
-                                                      ),
-                                                  child: Text.rich(
-                                                    TextSpan(
-                                                      children: [
-                                                        TextSpan(
-                                                          text: 'Fecha: ',
-                                                          style: labelStyle,
-                                                        ),
-                                                        TextSpan(
-                                                          text: race.date!,
-                                                          style: resultRaceStyle,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                          return InkWell(
+                            onTap: () {
+                              if (race.registrationLink?.isNotEmpty ?? false) {
+                                _showRaceInWebView(race.registrationLink!);
+                              } else {
+                                debugPrint(
+                                  'No se encontró enlace para ${race.name}',
+                                );
+                              }
+                            },
+                            child: Card(
+                              margin: EdgeInsets.symmetric(
+                                horizontal: cardHorizontalMargin,
+                                vertical: 6.0,
+                              ),
+                              elevation: 2.0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(cardPadding),
+                                // AHORA: Usamos una Row principal para separar el contenido y el icono
+                                child: IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // 1. Contenido principal que se expande
+                                      Expanded(
+                                        flex: 8,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Nombre de la carrera
+                                            Text(
+                                              race.name,
+                                              maxLines: titleMaxLines,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: titleFontSize,
+                                              ),
+                                            ),
 
-                                              // Zona
-                                              if (race.zone?.isNotEmpty ??
-                                                  false)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 4.0,
-                                                      ),
-                                                  child: Text.rich(
-                                                    TextSpan(
-                                                      children: [
-                                                        TextSpan(
-                                                          text: 'Zona: ',
-                                                          style: labelStyle,
-                                                        ),
-                                                        TextSpan(
-                                                          text: race.zone![0]
-                                                                  .toUpperCase() +
-                                                              race.zone!
-                                                                  .substring(1),
-                                                          style: resultRaceStyle,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                                            // Separador
+                                            const SizedBox(height: 8.0),
 
-                                              // Tipo
-                                              if (race.type?.isNotEmpty ??
-                                                  false)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 4.0,
-                                                      ),
-                                                  child: Text.rich(
-                                                    TextSpan(
-                                                      children: [
-                                                        TextSpan(
-                                                          text: 'Tipo: ',
-                                                          style: labelStyle,
-                                                        ),
-                                                        TextSpan(
-                                                          text: race.type!,
-                                                          style: resultRaceStyle,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-
-                                              // Terreno
-                                              if (race.terrain?.isNotEmpty ??
-                                                  false)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 4.0,
-                                                      ),
-                                                  child: Text.rich(
-                                                    TextSpan(
-                                                      children: [
-                                                        TextSpan(
-                                                          text: 'Terreno: ',
-                                                          style: labelStyle,
-                                                        ),
-                                                        TextSpan(
-                                                          text: race.terrain!,
-                                                          style: resultRaceStyle,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-
-                                              // Distancias
+                                            // Fecha
+                                            if (race.date?.isNotEmpty ?? false)
                                               Padding(
                                                 padding: const EdgeInsets.only(
                                                   top: 4.0,
@@ -1324,118 +1202,213 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   TextSpan(
                                                     children: [
                                                       TextSpan(
-                                                        text: 'Distancias: ',
+                                                        text: 'Fecha: ',
                                                         style: labelStyle,
                                                       ),
                                                       TextSpan(
-                                                        text: race.distances
-                                                                .isNotEmpty
-                                                            ? race.distances
-                                                                .map((d) => d
-                                                                        .round()
-                                                                        .toString() +
-                                                                    'k')
-                                                                .join(', ')
-                                                            : 'No especificada',
+                                                        text: race.date!,
                                                         style: resultRaceStyle,
                                                       ),
                                                     ],
                                                   ),
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                        VerticalDivider(),
-                                        Expanded(
-                                          flex: 1,
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceAround,
-                                            children: [
-                                              // 2. Icono de favorito que se ajusta a su tamaño
-                                              IconButton(
-                                                icon: Icon(
-                                                  race.isFavorite
-                                                      ? Icons.favorite
-                                                      : Icons.favorite_border,
-                                                  color: race.isFavorite
-                                                      ? Colors.red
-                                                      : Colors.grey,
-                                                  size: 30,
+
+                                            // Zona
+                                            if (race.zone?.isNotEmpty ?? false)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4.0,
                                                 ),
-                                                onPressed: () {
-                                                  _toggleFavorite(race);
-                                                },
-                                              ),
-                                              IconButton(
-                                                icon: Icon(
-                                                  Icons.share,
-                                                  color: Colors.grey,
-                                                  size: 30,
+                                                child: Text.rich(
+                                                  TextSpan(
+                                                    children: [
+                                                      TextSpan(
+                                                        text: 'Zona: ',
+                                                        style: labelStyle,
+                                                      ),
+                                                      TextSpan(
+                                                        text:
+                                                            race.zone![0]
+                                                                .toUpperCase() +
+                                                            race.zone!
+                                                                .substring(1),
+                                                        style: resultRaceStyle,
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                                onPressed: () {
-                                                  _handleShareRace(race);
-                                                },
                                               ),
-                                            ],
-                                          ),
+
+                                            // Tipo
+                                            if (race.type?.isNotEmpty ?? false)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4.0,
+                                                ),
+                                                child: Text.rich(
+                                                  TextSpan(
+                                                    children: [
+                                                      TextSpan(
+                                                        text: 'Tipo: ',
+                                                        style: labelStyle,
+                                                      ),
+                                                      TextSpan(
+                                                        text: race.type!,
+                                                        style: resultRaceStyle,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // Terreno
+                                            if (race.terrain?.isNotEmpty ??
+                                                false)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4.0,
+                                                ),
+                                                child: Text.rich(
+                                                  TextSpan(
+                                                    children: [
+                                                      TextSpan(
+                                                        text: 'Terreno: ',
+                                                        style: labelStyle,
+                                                      ),
+                                                      TextSpan(
+                                                        text: race.terrain!,
+                                                        style: resultRaceStyle,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // Distancias
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4.0,
+                                              ),
+                                              child: Text.rich(
+                                                TextSpan(
+                                                  children: [
+                                                    TextSpan(
+                                                      text: 'Distancias: ',
+                                                      style: labelStyle,
+                                                    ),
+                                                    TextSpan(
+                                                      text:
+                                                          race
+                                                              .distances
+                                                              .isNotEmpty
+                                                          ? race.distances
+                                                                .map(
+                                                                  (d) =>
+                                                                      d
+                                                                          .round()
+                                                                          .toString() +
+                                                                      'k',
+                                                                )
+                                                                .join(', ')
+                                                          : 'No especificada',
+                                                      style: resultRaceStyle,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      VerticalDivider(),
+                                      Expanded(
+                                        flex: 1,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            // 2. Icono de favorito que se ajusta a su tamaño
+                                            IconButton(
+                                              icon: Icon(
+                                                race.isFavorite
+                                                    ? Icons.favorite
+                                                    : Icons.favorite_border,
+                                                color: race.isFavorite
+                                                    ? Colors.red
+                                                    : Colors.grey,
+                                                size: 30,
+                                              ),
+                                              onPressed: () {
+                                                _toggleFavorite(race);
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.share,
+                                                color: Colors.grey,
+                                                size: 30,
+                                              ),
+                                              onPressed: () {
+                                                _handleShareRace(race);
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            );
-                          }
+                            ),
+                          );
+                        }
 
+                        if (constraints.maxWidth > tabletBreakpoint) {
+                          int crossAxisCount =
+                              (constraints.maxWidth / cardWidthForGridReference)
+                                  .floor()
+                                  .clamp(2, 4);
                           if (constraints.maxWidth > tabletBreakpoint) {
-                            int crossAxisCount = (constraints.maxWidth /
-                                    cardWidthForGridReference)
-                                .floor()
-                                .clamp(2, 4);
-                            if (constraints.maxWidth > tabletBreakpoint) {
-                              if (crossAxisCount < 2) {
-                                crossAxisCount = 2;
-                              }
+                            if (crossAxisCount < 2) {
+                              crossAxisCount = 2;
                             }
-
-                            double cardWidth =
-                                (constraints.maxWidth -
-                                    ((crossAxisCount - 1) * 10.0) -
-                                    24.0) /
-                                crossAxisCount;
-                            double cardHeight = 215.0;
-
-                            return GridView.builder(
-                              padding: const EdgeInsets.all(12.0),
-                              itemCount: _filteredRaces.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: crossAxisCount,
-                                    crossAxisSpacing: 10.0,
-                                    mainAxisSpacing: 10.0,
-                                    childAspectRatio: cardWidth / cardHeight,
-                                  ),
-                              itemBuilder: (context, index) {
-                                final race = _filteredRaces[index];
-                                return buildRaceItemWidget(race, true);
-                              },
-                            );
-                          } else {
-                            return ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 4.0,
-                              ),
-                              itemCount: _filteredRaces.length,
-                              itemBuilder: (context, index) {
-                                final race = _filteredRaces[index];
-                                return buildRaceItemWidget(race, false);
-                              },
-                            );
                           }
-                        },
-                      ),
+
+                          double cardWidth =
+                              (constraints.maxWidth -
+                                  ((crossAxisCount - 1) * 10.0) -
+                                  24.0) /
+                              crossAxisCount;
+                          double cardHeight = 215.0;
+
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(12.0),
+                            itemCount: _filteredRaces.length,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 10.0,
+                                  mainAxisSpacing: 10.0,
+                                  childAspectRatio: cardWidth / cardHeight,
+                                ),
+                            itemBuilder: (context, index) {
+                              final race = _filteredRaces[index];
+                              return buildRaceItemWidget(race, true);
+                            },
+                          );
+                        } else {
+                          return ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            itemCount: _filteredRaces.length,
+                            itemBuilder: (context, index) {
+                              final race = _filteredRaces[index];
+                              return buildRaceItemWidget(race, false);
+                            },
+                          );
+                        }
+                      },
+                    ),
             ),
           ),
         ),

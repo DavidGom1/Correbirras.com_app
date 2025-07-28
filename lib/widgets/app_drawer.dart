@@ -47,8 +47,13 @@ class AppDrawer extends StatelessWidget {
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Color.fromRGBO(180, 90, 20, 1) // Color más suave para tema oscuro
-                    : Color.fromRGBO(239, 120, 26, 1), // Color original para tema claro
+                    ? Color(0xFF404040) // Gris muy oscuro para tema oscuro
+                    : Color.fromRGBO(
+                        239,
+                        120,
+                        26,
+                        1,
+                      ), // Color original para tema claro
               ),
               child: Column(
                 children: [
@@ -162,7 +167,7 @@ class AppDrawer extends StatelessWidget {
                   title: const Text('Favoritos'),
                   onTap: onFavoritesTap,
                 ),
-                
+
                 // ListTile para cambiar tema
                 Consumer<ThemeProvider>(
                   builder: (context, themeProvider, child) {
@@ -183,10 +188,13 @@ class AppDrawer extends StatelessWidget {
                     );
                   },
                 ),
-                
+
                 // Línea divisoria moderna
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -210,7 +218,7 @@ class AppDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 ListTile(
                   leading: Icon(Icons.web),
                   title: const Text('Ver la pagina correbirras.com'),
@@ -250,7 +258,9 @@ class AppDrawer extends StatelessWidget {
                     height: 40,
                     colorFilter: ColorFilter.mode(
                       Theme.of(context).brightness == Brightness.dark
-                          ? Color.fromRGBO(180, 90, 20, 1)
+                          ? Color(
+                              0xFF707070,
+                            ) // Gris medio para íconos en tema oscuro
                           : Color.fromRGBO(239, 120, 26, 1),
                       BlendMode.srcIn,
                     ),
@@ -269,7 +279,9 @@ class AppDrawer extends StatelessWidget {
                     height: 30,
                     colorFilter: ColorFilter.mode(
                       Theme.of(context).brightness == Brightness.dark
-                          ? Color.fromRGBO(180, 90, 20, 1)
+                          ? Color(
+                              0xFF707070,
+                            ) // Gris medio para íconos en tema oscuro
                           : Color.fromRGBO(239, 120, 26, 1),
                       BlendMode.srcIn,
                     ),
@@ -296,8 +308,14 @@ class AppDrawer extends StatelessWidget {
                   onPressed: () =>
                       utilService.launchURL('https://t.me/dagodev'),
                   style: TextButton.styleFrom(
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? Color.fromARGB(101, 180, 90, 20)
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                        ? Color.fromARGB(
+                            101,
+                            112,
+                            112,
+                            112,
+                          ) // Gris para tema oscuro
                         : Color.fromARGB(101, 239, 118, 26),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
@@ -348,7 +366,7 @@ class AppDrawer extends StatelessWidget {
               Icon(
                 Icons.logout,
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Color.fromRGBO(180, 90, 20, 1)
+                    ? Color(0xFF707070) // Gris para tema oscuro
                     : Color.fromRGBO(239, 120, 26, 1),
                 size: 24,
               ),
@@ -357,7 +375,7 @@ class AppDrawer extends StatelessWidget {
                 'Cerrar Sesión',
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Color.fromRGBO(180, 90, 20, 1)
+                      ? Color(0xFF707070) // Gris para tema oscuro
                       : Color.fromRGBO(239, 120, 26, 1),
                   fontWeight: FontWeight.bold,
                 ),
@@ -372,10 +390,7 @@ class AppDrawer extends StatelessWidget {
             TextButton(
               child: Text(
                 'Cancelar',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
               ),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -393,18 +408,15 @@ class AppDrawer extends StatelessWidget {
               ),
               child: Text(
                 'Cerrar Sesión',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               onPressed: () {
                 Navigator.of(context).pop(); // Cerrar diálogo
                 Navigator.of(context).pop(); // Cerrar drawer
-                
+
                 try {
                   onLogout(); // Ejecutar el logout
-                  
+
                   // Mostrar notificación de éxito usando las utilidades
                   NotificationUtils.showSuccess(
                     context,
