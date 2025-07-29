@@ -28,7 +28,7 @@ class RaceCard extends StatelessWidget {
 
     final TextStyle resultRaceStyle = TextStyle(
       fontSize: 15,
-      color: Colors.grey[800],
+      color: AppTheme.getRaceCardSubtext(context),
       fontWeight: FontWeight.w400,
     );
 
@@ -44,7 +44,9 @@ class RaceCard extends StatelessWidget {
           horizontal: cardHorizontalMargin,
           vertical: 6.0,
         ),
-        elevation: 2.0,
+        elevation: 5.0,
+        shadowColor: AppTheme.getRaceCardShadowColor(context),
+        color: AppTheme.getRaceCardBackground(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
@@ -133,7 +135,10 @@ class RaceCard extends StatelessWidget {
                           race.isFavorite
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: AppTheme.getFavoriteColor(context, race.isFavorite),
+                          color: AppTheme.getFavoriteIcon(
+                            context,
+                            isActive: race.isFavorite,
+                          ),
                           size: 30,
                         ),
                         onPressed: onFavoriteToggle,
@@ -141,9 +146,9 @@ class RaceCard extends StatelessWidget {
 
                       // Icono de compartir
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.share,
-                          color: Colors.grey,
+                          color: AppTheme.getSecondaryIconColor(context),
                           size: 30,
                         ),
                         onPressed: onShare,

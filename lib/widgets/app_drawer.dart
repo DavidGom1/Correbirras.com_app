@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/util_service.dart';
 import '../utils/notification_utils.dart';
 import '../core/theme/theme_provider.dart';
+import '../core/theme/app_theme.dart';
 
 class AppDrawer extends StatelessWidget {
   final bool isLoggedIn;
@@ -30,7 +31,7 @@ class AppDrawer extends StatelessWidget {
     final UtilService utilService = UtilService();
 
     final TextStyle drawersTextStyle = TextStyle(
-      color: Colors.white,
+      color: AppTheme.getPrimaryTextColor(context),
       fontSize: 25,
       fontWeight: FontWeight.bold,
     );
@@ -46,14 +47,7 @@ class AppDrawer extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Color(0xFF404040) // Gris muy oscuro para tema oscuro
-                    : Color.fromRGBO(
-                        239,
-                        120,
-                        26,
-                        1,
-                      ), // Color original para tema claro
+                color: AppTheme.getDrawerHeaderColor(context),
               ),
               child: Column(
                 children: [
@@ -73,12 +67,14 @@ class AppDrawer extends StatelessWidget {
                               userPhotoURL != null && userPhotoURL!.isNotEmpty
                               ? NetworkImage(userPhotoURL!)
                               : null,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundColor: AppTheme.getPrimaryTextColor(
+                            context,
+                          ).withValues(alpha: 0.2),
                           child: userPhotoURL == null || userPhotoURL!.isEmpty
                               ? Icon(
                                   Icons.person,
                                   size: 30,
-                                  color: Colors.white,
+                                  color: AppTheme.getPrimaryTextColor(context),
                                 )
                               : null,
                         ),
@@ -93,7 +89,9 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   userDisplayName ?? 'Usuario',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppTheme.getPrimaryTextColor(
+                                      context,
+                                    ),
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -104,8 +102,8 @@ class AppDrawer extends StatelessWidget {
                                   Text(
                                     userEmail!,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.8,
+                                      color: AppTheme.getSecondaryTextColor(
+                                        context,
                                       ),
                                       fontSize: 12,
                                     ),
@@ -116,7 +114,9 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   'Toca para iniciar sesión',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppTheme.getPrimaryTextColor(
+                                      context,
+                                    ),
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -124,7 +124,9 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   'Accede con Google',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.8),
+                                    color: AppTheme.getSecondaryTextColor(
+                                      context,
+                                    ),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -139,7 +141,7 @@ class AppDrawer extends StatelessWidget {
                             onPressed: () => _showLogoutConfirmation(context),
                             icon: Icon(
                               Icons.logout,
-                              color: Colors.white,
+                              color: AppTheme.getPrimaryTextColor(context),
                               size: 20,
                             ),
                             tooltip: 'Cerrar Sesión',
@@ -147,7 +149,7 @@ class AppDrawer extends StatelessWidget {
                         else
                           Icon(
                             Icons.login,
-                            color: Colors.white.withValues(alpha: 0.7),
+                            color: AppTheme.getSecondaryTextColor(context),
                             size: 20,
                           ),
                       ],
@@ -201,16 +203,8 @@ class AppDrawer extends StatelessWidget {
                         child: Container(
                           height: 1,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                Colors.transparent,
-                                Color.fromRGBO(239, 120, 26, 0.3),
-                                Color.fromRGBO(239, 120, 26, 0.7),
-                                Color.fromRGBO(239, 120, 26, 0.3),
-                                Colors.transparent,
-                              ],
+                            gradient: AppTheme.getDrawerDividerGradient(
+                              context,
                             ),
                           ),
                         ),
@@ -257,11 +251,7 @@ class AppDrawer extends StatelessWidget {
                     width: 40,
                     height: 40,
                     colorFilter: ColorFilter.mode(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Color(
-                              0xFF707070,
-                            ) // Gris medio para íconos en tema oscuro
-                          : Color.fromRGBO(239, 120, 26, 1),
+                      AppTheme.getDrawerSocialIconColor(context),
                       BlendMode.srcIn,
                     ),
                   ),
@@ -278,11 +268,7 @@ class AppDrawer extends StatelessWidget {
                     width: 30,
                     height: 30,
                     colorFilter: ColorFilter.mode(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Color(
-                              0xFF707070,
-                            ) // Gris medio para íconos en tema oscuro
-                          : Color.fromRGBO(239, 120, 26, 1),
+                      AppTheme.getDrawerSocialIconColor(context),
                       BlendMode.srcIn,
                     ),
                   ),
@@ -302,21 +288,17 @@ class AppDrawer extends StatelessWidget {
               children: [
                 Text(
                   'Desarrollado por ',
-                  style: TextStyle(color: Color.fromARGB(195, 34, 34, 34)),
+                  style: TextStyle(
+                    color: AppTheme.getDrawerTextDevColor(context),
+                  ),
                 ),
                 TextButton(
                   onPressed: () =>
                       utilService.launchURL('https://t.me/dagodev'),
                   style: TextButton.styleFrom(
-                    backgroundColor:
-                        Theme.of(context).brightness == Brightness.dark
-                        ? Color.fromARGB(
-                            101,
-                            112,
-                            112,
-                            112,
-                          ) // Gris para tema oscuro
-                        : Color.fromARGB(101, 239, 118, 26),
+                    backgroundColor: AppTheme.getDrawerButtonBackground(
+                      context,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
                     ),
@@ -331,13 +313,13 @@ class AppDrawer extends StatelessWidget {
                       Text(
                         'Dagodev',
                         style: TextStyle(
-                          color: Color.fromARGB(195, 34, 34, 34),
+                          color: AppTheme.getDrawerTextDevColor(context),
                         ),
                       ),
                       SizedBox(width: 4),
                       Icon(
                         Icons.telegram,
-                        color: Color.fromARGB(195, 34, 34, 34),
+                        color: AppTheme.getDrawerTextDevColor(context),
                         size: 16,
                       ),
                     ],
@@ -358,6 +340,7 @@ class AppDrawer extends StatelessWidget {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: AppTheme.getDialogBackground(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
@@ -365,18 +348,14 @@ class AppDrawer extends StatelessWidget {
             children: [
               Icon(
                 Icons.logout,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Color(0xFF707070) // Gris para tema oscuro
-                    : Color.fromRGBO(239, 120, 26, 1),
+                color: AppTheme.getPrimaryTextColor(context),
                 size: 24,
               ),
               SizedBox(width: 8),
               Text(
                 'Cerrar Sesión',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Color(0xFF707070) // Gris para tema oscuro
-                      : Color.fromRGBO(239, 120, 26, 1),
+                  color: AppTheme.getPrimaryTextColor(context),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -384,13 +363,19 @@ class AppDrawer extends StatelessWidget {
           ),
           content: Text(
             '¿Estás seguro de que quieres cerrar sesión?\n\nTus favoritos se guardarán automáticamente.',
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(
+              fontSize: 16,
+              color: AppTheme.getPrimaryTextColor(context),
+            ),
           ),
           actions: <Widget>[
             TextButton(
               child: Text(
                 'Cancelar',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                style: TextStyle(
+                  color: AppTheme.getSecondaryTextColor(context),
+                  fontSize: 16,
+                ),
               ),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -398,10 +383,8 @@ class AppDrawer extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? Color.fromRGBO(180, 90, 20, 1)
-                    : Color.fromRGBO(239, 120, 26, 1),
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.getDrawerButtonBackground(context),
+                foregroundColor: AppTheme.getPrimaryTextColor(context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

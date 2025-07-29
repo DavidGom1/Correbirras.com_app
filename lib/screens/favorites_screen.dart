@@ -73,12 +73,13 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     final double titleFontSize = 16.0;
     final TextStyle resultRaceStyle = TextStyle(
       fontSize: 15,
-      color: Colors.grey[800],
+      color: AppTheme.getRaceCardSubtext(context),
       fontWeight: FontWeight.w400,
     );
-    final TextStyle labelStyle = const TextStyle(
+    final TextStyle labelStyle = TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.bold,
+      color: AppTheme.getRaceCardText(context),
     );
 
     return InkWell(
@@ -96,6 +97,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
           vertical: cardVerticalMargin,
         ),
         elevation: 2.0,
+        color: AppTheme.getRaceCardBackground(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Padding(
           padding: EdgeInsets.all(cardPadding),
@@ -118,6 +120,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: titleFontSize,
+                          color: AppTheme.getRaceCardText(context),
                         ),
                       ),
                       const SizedBox(height: 8.0),
@@ -214,10 +217,10 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.favorite,
-                          color: AppTheme.getFavoriteColor(
+                          color: AppTheme.getFavoriteIcon(
                             context,
-                            true,
-                          ), // Usar color dinámico
+                            isActive: true,
+                          ), // Usar método actualizado
                           size: 30,
                         ),
                         onPressed: () {
@@ -225,7 +228,11 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         },
                       ),
                       IconButton(
-                        icon: Icon(Icons.share, color: Colors.grey, size: 30),
+                        icon: Icon(
+                          Icons.share,
+                          color: AppTheme.getSecondaryIconColor(context),
+                          size: 30,
+                        ),
                         onPressed: () {
                           _handleShareRace(race);
                         },
@@ -250,15 +257,17 @@ class FavoritesScreenState extends State<FavoritesScreen> {
     );
 
     return Container(
-      color: AppTheme.getControlColor(context), // Usar color dinámico
+      color: AppTheme.getPrimaryControlColor(
+        context,
+      ), // Usar método actualizado
       child: SafeArea(
         child: Scaffold(
           appBar: AppBar(
             elevation: 0,
             shadowColor: const Color.fromARGB(186, 0, 0, 0),
-            backgroundColor: AppTheme.getControlColor(
+            backgroundColor: AppTheme.getPrimaryControlColor(
               context,
-            ), // Usar color dinámico
+            ), // Usar método actualizado
             foregroundColor: Colors.white,
             title: Text(
               'Favoritos',
@@ -274,13 +283,16 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                       Icon(
                         Icons.favorite_border,
                         size: 80,
-                        color: Colors.grey[400],
+                        color: AppTheme.getSecondaryIconColor(context),
                       ),
                       SizedBox(height: 16),
                       Text(
                         'Aún no has marcado ninguna carrera como favorita.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppTheme.getSecondaryTextColor(context),
+                        ),
                       ),
                       SizedBox(height: 16),
                       ElevatedButton(
@@ -288,9 +300,9 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.getControlColor(
+                          backgroundColor: AppTheme.getPrimaryControlColor(
                             context,
-                          ), // Usar color dinámico
+                          ), // Usar método actualizado
                           foregroundColor: Colors.white,
                         ),
                         child: Text('Explorar carreras'),

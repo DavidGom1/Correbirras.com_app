@@ -20,7 +20,6 @@ import 'services/race_service.dart';
 import 'services/util_service.dart';
 import 'utils/notification_utils.dart';
 import 'utils/upgrader_messages.dart';
-import 'widgets/rotating_icon.dart';
 import 'widgets/race_card.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/auth_dialog.dart';
@@ -561,13 +560,13 @@ class _MyHomePageState extends State<MyHomePage> {
     final filterOptions = _raceService.getFilterOptions(_allRaces);
 
     final TextStyle drawersTextStyle = TextStyle(
-      color: Colors.white,
+      color: AppTheme.getPrimaryTextColor(context),
       fontSize: 25,
       fontWeight: FontWeight.bold,
     );
 
     return Container(
-      color: AppTheme.getControlColor(context),
+      color: AppTheme.getPrimaryControlColor(context),
       child: SafeArea(
         child: PopScope<Object?>(
           canPop: !_isWebViewVisible,
@@ -588,8 +587,8 @@ class _MyHomePageState extends State<MyHomePage> {
               appBar: AppBar(
                 elevation: 0,
                 shadowColor: const Color.fromARGB(186, 0, 0, 0),
-                backgroundColor: AppTheme.getControlColor(context),
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.getPrimaryControlColor(context),
+                foregroundColor: AppTheme.getPrimaryTextColor(context),
                 leading: Builder(
                   builder: (BuildContext innerContext) {
                     return IconButton(
@@ -648,14 +647,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? null
                   : Drawer(
                       child: Material(
-                        color: Theme.of(context).scaffoldBackgroundColor,
+                        color: AppTheme.getSurfaceColor(context),
                         child: ListView(
                           padding: EdgeInsets.zero,
                           children: <Widget>[
                             Container(
                               padding: EdgeInsets.symmetric(vertical: 20),
                               decoration: BoxDecoration(
-                                color: AppTheme.getControlColor(context),
+                                color: AppTheme.getDrawerHeaderColor(context),
                               ),
                               child: Center(
                                 child: Text('Filtros', style: drawersTextStyle),
@@ -768,14 +767,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                       '${_selectedDistanceRange.start.round().toString()}${'K'}',
                                       '${_selectedDistanceRange.end.round().toString()}${'K'}',
                                     ),
-                                    activeColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Color(
-                                            0xFF606060,
-                                          ) // Gris medio para tema oscuro
-                                        : Color.fromRGBO(239, 120, 26, 1),
-                                    inactiveColor: Colors.grey,
+                                    activeColor: AppTheme.getSliderActiveColor(
+                                      context,
+                                    ),
+                                    inactiveColor:
+                                        AppTheme.getSliderInactiveColor(
+                                          context,
+                                        ),
                                     onChanged: (values) => setState(
                                       () => _selectedDistanceRange = values,
                                     ),
@@ -816,7 +814,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     .primary
                                                     .withValues(alpha: 0.9);
                                               }
-                                              return AppTheme.getControlColor(
+                                              return AppTheme.getSliderActiveColor(
                                                 context,
                                               );
                                             }),
@@ -824,7 +822,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                             WidgetStateProperty.resolveWith<
                                               Color?
                                             >((Set<WidgetState> states) {
-                                              return Colors.white;
+                                              return AppTheme.getPrimaryTextColor(
+                                                context,
+                                              );
                                             }),
                                         shape:
                                             WidgetStateProperty.all<
@@ -867,9 +867,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               if (states.contains(
                                                 WidgetState.hovered,
                                               )) {
-                                                return Colors.white.withValues(
-                                                  alpha: 0.08,
-                                                );
+                                                return AppTheme.getPrimaryTextColor(
+                                                  context,
+                                                ).withValues(alpha: 0.08);
                                               }
                                               if (states.contains(
                                                     WidgetState.focused,
@@ -877,9 +877,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   states.contains(
                                                     WidgetState.pressed,
                                                   )) {
-                                                return Colors.white.withValues(
-                                                  alpha: 0.24,
-                                                );
+                                                return AppTheme.getPrimaryTextColor(
+                                                  context,
+                                                ).withValues(alpha: 0.24);
                                               }
                                               return null;
                                             }),
@@ -903,10 +903,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          RotatingIcon(
-                            imagePath: 'assets/images/rotation_icon.png',
-                            size: 100.0,
-                          ),
+                          AppTheme.getSpinKitPumpingHeart(context),
                           const SizedBox(height: 20),
                           const Text(
                             'Cargando carreras...',
@@ -997,7 +994,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         // WebView overlay
                         if (_isWebViewVisible)
                           Container(
-                            color: Colors.white,
+                            color: AppTheme.getScaffoldBackground(context),
                             child: Column(
                               children: [
                                 if (_isWebViewLoading)

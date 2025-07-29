@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../utils/notification_utils.dart';
+import '../core/theme/app_theme.dart';
 
 class AuthDialog extends StatefulWidget {
   const AuthDialog({super.key});
@@ -19,6 +20,7 @@ class _AuthDialogState extends State<AuthDialog> {
 
   bool _isLoginMode = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -37,15 +39,9 @@ class _AuthDialogState extends State<AuthDialog> {
           maxHeight: MediaQuery.of(context).size.height * 0.75,
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.getDialogBackground(context),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: ThemeUtils.getAdaptiveCardShadow(context),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
@@ -72,32 +68,36 @@ class _AuthDialogState extends State<AuthDialog> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color.fromRGBO(239, 120, 26, 1),
-            Color.fromRGBO(255, 140, 46, 1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      color: AppTheme.getDrawerHeaderColor(context),
       child: Column(
         children: [
-          const Icon(Icons.account_circle, color: Colors.white, size: 50),
+          Icon(
+            Icons.account_circle,
+            color: AppTheme.getPrimaryIconColor(
+              context,
+            ), // Siempre blanco sobre fondo naranja
+            size: 50,
+          ),
           const SizedBox(height: 10),
           Text(
             _isLoginMode ? 'Iniciar Sesión' : 'Registrarse',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppTheme.getPrimaryTextColor(
+                context,
+              ), // Siempre blanco sobre fondo naranja
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             'Sincroniza tus favoritos en la nube',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(
+              color: AppTheme.getSecondaryTextColor(
+                context,
+              ), // Blanco semi-transparente sobre fondo naranja
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -112,21 +112,18 @@ class _AuthDialogState extends State<AuthDialog> {
         children: [
           // Campo de email
           TextFormField(
+            style: AppTheme.getInputTextStyle(context),
             controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              prefixIcon: const Icon(Icons.email),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Color.fromRGBO(239, 120, 26, 1),
-                  width: 2,
+            decoration: ThemeUtils.getAdaptiveInputDecoration(context, 'Email')
+                .copyWith(
+                  labelStyle: AppTheme.getLabelTextStyle(
+                    context,
+                  ), // 👈 AQUÍ AGREGAS TU MÉTODO
+                  prefixIcon: Icon(
+                    Icons.email,
+                    color: AppTheme.getSecondaryIconColor(context),
+                  ),
                 ),
-              ),
-            ),
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -145,22 +142,36 @@ class _AuthDialogState extends State<AuthDialog> {
 
           // Campo de contraseña
           TextFormField(
+            style: AppTheme.getInputTextStyle(context),
             controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'Contraseña',
-              prefixIcon: const Icon(Icons.lock),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Color.fromRGBO(239, 120, 26, 1),
-                  width: 2,
+            decoration:
+                ThemeUtils.getAdaptiveInputDecoration(
+                  context,
+                  'Contraseña',
+                ).copyWith(
+                  labelStyle: AppTheme.getLabelTextStyle(
+                    context,
+                  ), // 👈 AQUÍ TAMBIÉN
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color: AppTheme.getSecondaryIconColor(context),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: AppTheme.getSecondaryIconColor(context),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-              ),
-            ),
-            obscureText: true,
+            obscureText: _obscurePassword,
+
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor ingresa tu contraseña';
@@ -181,14 +192,16 @@ class _AuthDialogState extends State<AuthDialog> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleEmailAuth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromRGBO(239, 120, 26, 1),
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.getDrawerHeaderColor(context),
+                foregroundColor: AppTheme.getPrimaryTextColor(
+                  context,
+                ), // Siempre blanco sobre fondo naranja
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? AppTheme.getSpinKitPumpingHeart(context)
                   : Text(
                       _isLoginMode ? 'Iniciar Sesión' : 'Registrarse',
                       style: const TextStyle(
@@ -204,18 +217,22 @@ class _AuthDialogState extends State<AuthDialog> {
           // Divider con "O"
           Row(
             children: [
-              Expanded(child: Divider(color: Colors.grey[400])),
+              Expanded(
+                child: Divider(color: AppTheme.getDrawerTextDevColor(context)),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
                   'O',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: AppTheme.getDrawerTextDevColor(context),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              Expanded(child: Divider(color: Colors.grey[400])),
+              Expanded(
+                child: Divider(color: AppTheme.getSecondaryIconColor(context)),
+              ),
             ],
           ),
 
@@ -227,11 +244,14 @@ class _AuthDialogState extends State<AuthDialog> {
             height: 50,
             child: OutlinedButton.icon(
               onPressed: _isLoading ? null : _handleGoogleSignIn,
-              icon: Icon(Icons.login, color: Color.fromRGBO(239, 120, 26, 1)),
+              icon: Icon(
+                Icons.login,
+                color: AppTheme.getPrimaryIconColor(context),
+              ),
               label: const Text('Continuar con Google'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Color.fromRGBO(239, 120, 26, 1),
-                side: BorderSide(color: Color.fromRGBO(239, 120, 26, 1)),
+                foregroundColor: AppTheme.getDrawerTextDevColor(context),
+                side: BorderSide(color: AppTheme.getDrawerHeaderColor(context)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -255,7 +275,7 @@ class _AuthDialogState extends State<AuthDialog> {
                   ? '¿No tienes cuenta? Regístrate'
                   : '¿Ya tienes cuenta? Inicia sesión',
               style: TextStyle(
-                color: Color.fromRGBO(239, 120, 26, 1),
+                color: AppTheme.getDrawerTextDevColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
