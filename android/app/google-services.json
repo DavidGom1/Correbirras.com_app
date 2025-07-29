@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "1053599538056-4p30m1eirslubag0q74f3nm0kd6jdij8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "d63f8cfa4cdd59da73721d142fbe56a455b2ccd7"
+          }
+        },
+        {
           "client_id": "1053599538056-9aklvpimd741hjreh0lio25rdjl21koi.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.correbirras.agenda",
             "certificate_hash": "772e3ca6e22bdcbbd9a4e3546323ffcc04e6009a"
+          }
+        },
+        {
+          "client_id": "1053599538056-mju40botr3sap436ihr6goe666midmok.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "f2af1af2371d96eacf88abce93b36b13b6503365"
           }
         },
         {
@@ -35,6 +51,14 @@
           "android_info": {
             "package_name": "com.correbirras.agenda",
             "certificate_hash": "a8bc4b4147d7653f8fb5d1768cea478b1e524d71"
+          }
+        },
+        {
+          "client_id": "1053599538056-v0eena9gue4pm2gl225rq2gcg6im4qn0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.correbirras.agenda",
+            "certificate_hash": "de3f8cfa4cdd59da73721d142f8e56a45f82ccd7"
           }
         },
         {

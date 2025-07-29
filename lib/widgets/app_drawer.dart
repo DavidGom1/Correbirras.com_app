@@ -345,17 +345,18 @@ class AppDrawer extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.logout,
-                color: AppTheme.getPrimaryTextColor(context),
+                color: AppTheme.getDrawerTextDevColor(context),
                 size: 24,
               ),
               SizedBox(width: 8),
               Text(
                 'Cerrar Sesión',
                 style: TextStyle(
-                  color: AppTheme.getPrimaryTextColor(context),
+                  color: AppTheme.getDrawerTextDevColor(context),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -365,7 +366,7 @@ class AppDrawer extends StatelessWidget {
             '¿Estás seguro de que quieres cerrar sesión?\n\nTus favoritos se guardarán automáticamente.',
             style: TextStyle(
               fontSize: 16,
-              color: AppTheme.getPrimaryTextColor(context),
+              color: AppTheme.getDrawerTextDevColor(context),
             ),
           ),
           actions: <Widget>[
@@ -373,7 +374,7 @@ class AppDrawer extends StatelessWidget {
               child: Text(
                 'Cancelar',
                 style: TextStyle(
-                  color: AppTheme.getSecondaryTextColor(context),
+                  color: AppTheme.getDrawerTextDevColor(context),
                   fontSize: 16,
                 ),
               ),
@@ -383,7 +384,7 @@ class AppDrawer extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.getDrawerButtonBackground(context),
+                backgroundColor: AppTheme.getDrawerHeaderColor(context),
                 foregroundColor: AppTheme.getPrimaryTextColor(context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),

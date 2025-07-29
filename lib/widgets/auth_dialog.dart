@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../utils/notification_utils.dart';
 import '../core/theme/app_theme.dart';
+import 'package:sign_button/sign_button.dart';
 
 class AuthDialog extends StatefulWidget {
   const AuthDialog({super.key});
@@ -242,23 +243,13 @@ class _AuthDialogState extends State<AuthDialog> {
           SizedBox(
             width: double.infinity,
             height: 50,
-            child: OutlinedButton.icon(
+            child: SignInButton.mini(
+              buttonType: ButtonType.google,
+              btnColor: AppTheme.getDrawerHeaderColor(context),
               onPressed: _isLoading ? null : _handleGoogleSignIn,
-              icon: Icon(
-                Icons.login,
-                color: AppTheme.getPrimaryIconColor(context),
-              ),
-              label: const Text('Continuar con Google'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.getDrawerTextDevColor(context),
-                side: BorderSide(color: AppTheme.getDrawerHeaderColor(context)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+              buttonSize: ButtonSize.small,
             ),
           ),
-
           const SizedBox(height: 24),
 
           // Toggle entre login y registro
