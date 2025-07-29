@@ -41,6 +41,7 @@ out/
 # Android
 *.hprof
 *.jks
+/android/.gradle/
 
 # Web
 /web/build/
