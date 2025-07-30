@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -644,33 +645,46 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                     ],
                   ),
-                  drawer: AppDrawer(
-                    isLoggedIn: _authService.isLoggedIn,
-                    userDisplayName: _authService.userDisplayName,
-                    userEmail: _authService.userEmail,
-                    userPhotoURL: _authService.userPhotoURL,
-                    onAuthTap: _showAuthDialog,
-                    onLogout: _logout,
-                    onFavoritesTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FavoritesScreen(
-                            allRaces: _allRaces,
-                            toggleFavorite: _toggleFavorite,
-                            showRaceInWebView: _showRaceInWebView,
-                            handleShareRace: _handleShareRace,
-                          ),
+                  drawer: Stack(
+                    children: [
+                      // Fondo desenfocado
+                      BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                        enabled: false,
+                        child: Container(
+                          color: Colors.transparent, // transparente, solo blur
                         ),
-                      );
-                    },
-                    // Pasar los parámetros necesarios para la animación
-                    allRaces: _allRaces,
-                    toggleFavorite: _toggleFavorite,
-                    showRaceInWebView: _showRaceInWebView,
-                    handleShareRace: _handleShareRace,
+                      ),
+                      AppDrawer(
+                        isLoggedIn: _authService.isLoggedIn,
+                        userDisplayName: _authService.userDisplayName,
+                        userEmail: _authService.userEmail,
+                        userPhotoURL: _authService.userPhotoURL,
+                        onAuthTap: _showAuthDialog,
+                        onLogout: _logout,
+                        onFavoritesTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FavoritesScreen(
+                                allRaces: _allRaces,
+                                toggleFavorite: _toggleFavorite,
+                                showRaceInWebView: _showRaceInWebView,
+                                handleShareRace: _handleShareRace,
+                              ),
+                            ),
+                          );
+                        },
+                        // Pasar los parámetros necesarios para la animación
+                        allRaces: _allRaces,
+                        toggleFavorite: _toggleFavorite,
+                        showRaceInWebView: _showRaceInWebView,
+                        handleShareRace: _handleShareRace,
+                      ),
+                    ],
                   ),
+
                   endDrawer: _isWebViewVisible
                       ? null
                       : Drawer(
