@@ -114,7 +114,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 18,
-                          color: AppTheme.getSecondaryTextColor(context),
+                          color: AppTheme.getDrawerTextDevColor(context),
                         ),
                       ),
                       SizedBox(height: 16),
