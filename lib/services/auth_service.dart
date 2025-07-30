@@ -34,6 +34,31 @@ class AuthService {
     }
   }
 
+  // Método para enviar email de restablecimiento de contraseña
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      debugPrint('✅ Email de restablecimiento enviado a: $email');
+    } on FirebaseAuthException catch (e) {
+      debugPrint(
+        '❌ Error al enviar email de restablecimiento: ${e.code} - ${e.message}',
+      );
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('No existe una cuenta asociada a este email');
+        case 'invalid-email':
+          throw Exception('El email proporcionado no es válido');
+        case 'too-many-requests':
+          throw Exception('Demasiados intentos. Intenta de nuevo más tarde');
+        default:
+          throw Exception('Error al enviar email: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error general al enviar email de restablecimiento: $e');
+      rethrow;
+    }
+  }
+
   // Método para autenticación con Google
   Future<UserCredential?> signInWithGoogle() async {
     try {

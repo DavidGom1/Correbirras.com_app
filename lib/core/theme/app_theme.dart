@@ -563,7 +563,9 @@ class ThemeUtils {
         borderSide: BorderSide(color: AppTheme.getSecondaryIconColor(context)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: AppTheme.getPrimaryControlColor(context)),
+        borderSide: BorderSide(
+          width: 2,
+          color: isDarkMode(context) ? const Color.fromARGB(255, 230, 230, 230) : correbirrasOrange),
       ),
       filled: true,
       fillColor: AppTheme.getCardBackground(context),

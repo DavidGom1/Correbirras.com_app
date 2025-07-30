@@ -271,6 +271,20 @@ class _AuthDialogState extends State<AuthDialog> {
               ),
             ),
           ),
+
+          // Enlace para restablecer contraseña (solo en modo login)
+          if (_isLoginMode)
+            TextButton(
+              onPressed: _isLoading ? null : _showPasswordResetDialog,
+              child: Text(
+                '¿Olvidaste tu contraseña?',
+                style: TextStyle(
+                  color: AppTheme.getDrawerTextDevColor(context),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -367,5 +381,172 @@ class _AuthDialogState extends State<AuthDialog> {
         });
       }
     }
+  }
+
+  // Método para mostrar el diálogo de restablecimiento de contraseña
+  Future<void> _showPasswordResetDialog() async {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            decoration: BoxDecoration(
+              color: AppTheme.getDialogBackground(context),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: ThemeUtils.getAdaptiveCardShadow(context),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Título
+                      Text(
+                        'Restablecer contraseña',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.getDrawerTextDevColor(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Descripción
+                      Text(
+                        'Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.getDrawerTextDevColor(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Campo de email
+                      TextFormField(
+                        controller: emailController,
+                        style: AppTheme.getInputTextStyle(context),
+                        decoration:
+                            ThemeUtils.getAdaptiveInputDecoration(
+                              context,
+                              'Email',
+                            ).copyWith(
+                              labelStyle: AppTheme.getLabelTextStyle(context),
+                              prefixIcon: Icon(
+                                Icons.email,
+                                color: AppTheme.getSecondaryIconColor(context),
+                              ),
+                            ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor ingresa tu email';
+                          }
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
+                            return 'Por favor ingresa un email válido';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Botones
+                      Row(
+                        children: [
+                          // Botón cancelar
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              child: Text(
+                                'Cancelar',
+                                style: TextStyle(
+                                  color: AppTheme.getSecondaryTextColor(
+                                    context,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Botón enviar
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (formKey.currentState!.validate()) {
+                                  // Guardar contextos antes de la operación async
+                                  final navigator = Navigator.of(dialogContext);
+                                  final parentContext = context;
+                                  final currentDialogContext = dialogContext;
+
+                                  try {
+                                    await _authService.sendPasswordResetEmail(
+                                      emailController.text.trim(),
+                                    );
+
+                                    if (mounted) {
+                                      navigator.pop();
+                                      NotificationUtils.showSuccess(
+                                        mounted ? parentContext : context,
+                                        'Se ha enviado un enlace de restablecimiento a tu email.\nRevisa tu bandeja de entrada y tu bandeja de SPAM.',
+                                        title: 'Email enviado',
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      NotificationUtils.showError(
+                                        mounted
+                                            ? currentDialogContext
+                                            : context,
+                                        e.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        ),
+                                        title: 'Error',
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.getDrawerHeaderColor(
+                                  context,
+                                ),
+                                foregroundColor: AppTheme.getPrimaryTextColor(
+                                  context,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text('Enviar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
