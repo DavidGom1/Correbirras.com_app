@@ -3,6 +3,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:correbirras/models/race.dart';
 import '../core/theme/app_theme.dart';
 
+import '../widgets/race_card.dart';
+
 // Define los tipos de funciones que pasaremos
 typedef ToggleFavoriteCallback = Future<void> Function(Race race);
 typedef ShowWebViewCallback = void Function(String url);
@@ -60,194 +62,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   void _handleShareRace(Race race) {
     widget.handleShareRace(race); // Llama a la función recibida
   }
-
-  // Widget reutilizable para construir cada tarjeta de carrera
-  Widget _buildRaceItem(Race race, bool isGridView) {
-    // --- Variables de configuración ---
-    final double cardHorizontalMargin = isGridView ? 4.0 : 16.0;
-    final double cardVerticalMargin = isGridView ? 4.0 : 6.0;
-    final double cardPadding = 16.0;
-    final int? titleMaxLines = isGridView
-        ? null
-        : 1; // null permite líneas ilimitadas en grid
-    final double titleFontSize = 16.0;
-    final TextStyle resultRaceStyle = TextStyle(
-      fontSize: 15,
-      color: AppTheme.getRaceCardSubtext(context),
-      fontWeight: FontWeight.w400,
-    );
-    final TextStyle labelStyle = TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.bold,
-      color: AppTheme.getRaceCardText(context),
-    );
-
-    return InkWell(
-      onTap: () {
-        if (race.registrationLink?.isNotEmpty ?? false) {
-          _handleShowRaceInWebView(race.registrationLink!);
-          Navigator.pop(context);
-        } else {
-          debugPrint('No se encontró enlace para ${race.name}');
-        }
-      },
-      child: Card(
-        margin: EdgeInsets.symmetric(
-          horizontal: cardHorizontalMargin,
-          vertical: cardVerticalMargin,
-        ),
-        elevation: 2.0,
-        color: AppTheme.getRaceCardBackground(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: Padding(
-          padding: EdgeInsets.all(cardPadding),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Important for height
-                    children: [
-                      Text(
-                        race.name,
-                        maxLines: titleMaxLines,
-                        overflow: titleMaxLines != null
-                            ? TextOverflow.ellipsis
-                            : TextOverflow.visible,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: titleFontSize,
-                          color: AppTheme.getRaceCardText(context),
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      if (race.date?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Fecha: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '${race.date} - ${race.month}',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (race.zone?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Zona: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text:
-                                      '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (race.type?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Tipo: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: race.type,
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (race.terrain?.isNotEmpty ?? false)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Terreno: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: race.terrain,
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (race.distances.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Distancias: ',
-                              style: labelStyle,
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: '${race.distances.join('m, ')}m',
-                                  style: resultRaceStyle,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const VerticalDivider(),
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.favorite,
-                          color: AppTheme.getFavoriteIcon(
-                            context,
-                            isActive: true,
-                          ), // Usar método actualizado
-                          size: 30,
-                        ),
-                        onPressed: () {
-                          _handleToggleFavorite(race);
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.share,
-                          color: AppTheme.getSecondaryIconColor(context),
-                          size: 30,
-                        ),
-                        onPressed: () {
-                          _handleShareRace(race);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     final TextStyle drawersTextStyle = TextStyle(
@@ -342,7 +157,28 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         mainAxisSpacing: 10.0,
                         itemBuilder: (context, index) {
                           final race = _favoriteRaces[index];
-                          return _buildRaceItem(race, true);
+                          return RaceCard(
+                                            race: race,
+                                            isGridView: false,
+                                            onTap: () {
+                                              if (race
+                                                      .registrationLink
+                                                      ?.isNotEmpty ??
+                                                  false) {
+                                                _handleShowRaceInWebView(
+                                                  race.registrationLink!,
+                                                );
+                                              } else {
+                                                debugPrint(
+                                                  'No se encontró enlace para ${race.name}',
+                                                );
+                                              }
+                                            },
+                                            onFavoriteToggle: () =>
+                                                _handleToggleFavorite(race),
+                                            onShare: () =>
+                                                _handleShareRace(race),
+                                          );
                         },
                       );
                     } else {
@@ -352,7 +188,28 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         itemCount: _favoriteRaces.length,
                         itemBuilder: (context, index) {
                           final race = _favoriteRaces[index];
-                          return _buildRaceItem(race, false);
+                          return RaceCard(
+                                            race: race,
+                                            isGridView: false,
+                                            onTap: () {
+                                              if (race
+                                                      .registrationLink
+                                                      ?.isNotEmpty ??
+                                                  false) {
+                                                _handleShowRaceInWebView(
+                                                  race.registrationLink!,
+                                                );
+                                              } else {
+                                                debugPrint(
+                                                  'No se encontró enlace para ${race.name}',
+                                                );
+                                              }
+                                            },
+                                            onFavoriteToggle: () =>
+                                                _handleToggleFavorite(race),
+                                            onShare: () =>
+                                                _handleShareRace(race),
+                                          );
                         },
                       );
                     }
