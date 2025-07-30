@@ -1,0 +1,99 @@
+🎉 *ACTUALIZACIÓN DE LA APP CORREBIRRAS* 🎉
+
+📅 *Versión:* 1.0.0+18 
+🗓️ *Fecha:* 30 de Julio de 2025
+Para disfrutar de los cambios, actualiza tu app en el siguiente enlace:
+https://play.google.com/store/apps/details?id=com.correbirras.agenda 
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆕 *¿QUÉ HAY DE NUEVO?*
+
+*Datos nuevos en las fichas de carrera*
+• ⚡Ahora tambien aparecera la ciudad donde será la carrera.
+
+🔐 *¡Ya puedes recuperar tu contraseña!*
+¿Te olvidaste la contraseña de tu cuenta? ¡No te preocupes más!
+
+• 🔑 *Nuevo botón "¿Olvidaste tu contraseña?"* en la pantalla de inicio de sesión
+• 📧 *Te enviamos un email* con un enlace para crear una nueva contraseña
+• ⚡ *Proceso rápido y seguro* - Solo necesitas tu email
+• 📱 *Revisa tu bandeja de entrada* (y también la carpeta de SPAM por si acaso)
+
+🎨 *Mejor experiencia visual en tablets*
+¡Hemos mejorado cómo se ve la app en tablets!
+
+• 🔵 *La barra superior ya no sale negra* cuando abres la app
+• ⚪ *Los iconos de la barra de estado ahora son blancos* y se ven mejor
+• 🔄 *Al cambiar entre modo claro y oscuro* todo se actualiza al instante
+• ✨ *Colores más consistentes* en toda la aplicación
+
+🎭 *Navegación más fluida*
+¡La app ahora se siente más suave y moderna!
+
+• 🌊 *Animaciones elegantes* cuando navegas entre pantallas
+• ❤️ *Ir a favoritos es más fluido* con transiciones suaves
+• 🎯 *Cambio de tema instantáneo* sin parpadeos ni retrasos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ *MEJORAS QUE NOTARÁS*
+
+📱 *Al usar la app:*
+• *Más rápida* para cambiar entre modo día y noche
+• *Mejor aspecto* en tablets grandes
+• *Navegación más suave* entre secciones
+• *Recuperación de cuenta* mucho más fácil
+
+🎨 *Visualmente:*
+• Los colores naranja de la app se ven más consistentes
+• La barra superior siempre tiene iconos blancos y legibles
+• Las transiciones entre pantallas son más elegantes
+• Los diálogos y ventanas emergentes tienen mejor diseño
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 *PROBLEMAS SOLUCIONADOS*
+
+✅ *Barra negra en tablets* - Ya no aparece negra al abrir la app  
+✅ *Iconos ilegibles* - Los iconos de batería, hora, etc. ahora son blancos  
+✅ *Cambio de tema lento* - Ahora es instantáneo  
+✅ *Falta de recuperación de contraseña* - ¡Ya disponible!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 *¿CÓMO USAR LAS NUEVAS FUNCIONES?*
+
+🔐 *Para recuperar tu contraseña:*
+1. Abre la app y toca "Iniciar Sesión"
+2. Busca el enlace "¿Olvidaste tu contraseña?" 
+3. Introduce tu email y toca "Enviar"
+4. Revisa tu correo y sigue las instrucciones
+5. ¡Listo! Ya puedes crear una nueva contraseña
+
+🎨 *Para cambiar el tema:*
+1. Abre el menú lateral (☰)
+2. Toca "Modo Oscuro" o "Modo Claro"
+3. ¡El cambio es instantáneo!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 *CONSEJOS*
+
+• 📧 *Al recuperar contraseña:* Revisa también la carpeta de SPAM
+• 🎨 *Para mejor experiencia:* Prueba el modo oscuro en ambientes con poca luz
+• ❤️ *Tus favoritos:* Se sincronizan automáticamente si tienes cuenta
+• 🔄 *Problemas:* Cierra y abre la app si algo no funciona bien
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 *¿NECESITAS AYUDA?*
+
+Si tienes algún problema con la nueva actualización:
+
+• 📱 *Telegram:* @dagodev
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 *¡Disfruta de la nueva experiencia mejorada de Correbirras!*
