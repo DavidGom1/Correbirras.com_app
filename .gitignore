@@ -42,6 +42,7 @@ out/
 *.hprof
 *.jks
 /android/.gradle/
+/android/local.properties
 
 # Web
 /web/build/
