@@ -5,6 +5,9 @@ import '../services/util_service.dart';
 import '../utils/notification_utils.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/theme/app_theme.dart';
+import '../widgets/auth_dialog.dart'; // Importar el AuthDialog
+import '../screens/favorites_screen.dart'; // Importar FavoritesScreen
+import '../models/race.dart'; // Importar el modelo Race
 
 class AppDrawer extends StatelessWidget {
   final bool isLoggedIn;
@@ -14,6 +17,11 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback onAuthTap;
   final VoidCallback onLogout;
   final VoidCallback onFavoritesTap;
+  // Parámetros adicionales para favoritos con animación personalizada
+  final List<Race>? allRaces;
+  final ToggleFavoriteCallback? toggleFavorite;
+  final ShowWebViewCallback? showRaceInWebView;
+  final HandleShareRace? handleShareRace;
 
   const AppDrawer({
     super.key,
@@ -24,6 +32,11 @@ class AppDrawer extends StatelessWidget {
     required this.onAuthTap,
     required this.onLogout,
     required this.onFavoritesTap,
+    // Parámetros opcionales para la navegación personalizada
+    this.allRaces,
+    this.toggleFavorite,
+    this.showRaceInWebView,
+    this.handleShareRace,
   });
 
   @override
@@ -43,7 +56,12 @@ class AppDrawer extends StatelessWidget {
           InkWell(
             onTap: isLoggedIn
                 ? null
-                : onAuthTap, // Solo clickeable si no está logueado
+                : () {
+                    Navigator.pop(context); // Cerrar el drawer
+                    _showAuthDialogWithAnimation(
+                      context,
+                    ); // Abrir el popup con animación
+                  }, // Solo clickeable si no está logueado
             child: Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -167,7 +185,10 @@ class AppDrawer extends StatelessWidget {
                 ListTile(
                   leading: Icon(Icons.favorite), // Icono de favorito
                   title: const Text('Favoritos'),
-                  onTap: onFavoritesTap,
+                  onTap: () {
+                    Navigator.pop(context); // Cerrar drawer
+                    _navigateToFavoritesWithAnimation(context);
+                  },
                 ),
 
                 // ListTile para cambiar tema
@@ -180,9 +201,7 @@ class AppDrawer extends StatelessWidget {
                             : Icons.dark_mode,
                       ),
                       title: Text(
-                        themeProvider.themeMode == ThemeMode.dark
-                            ? 'Modo Claro'
-                            : 'Modo Oscuro',
+                        themeProvider.isDarkMode ? 'Modo Claro' : 'Modo Oscuro',
                       ),
                       onTap: () {
                         themeProvider.toggleTheme();
@@ -330,6 +349,83 @@ class AppDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // Método para navegar a favoritos con animación personalizada
+  void _navigateToFavoritesWithAnimation(BuildContext context) {
+    // Si tenemos los parámetros necesarios, usar navegación personalizada
+    if (allRaces != null &&
+        toggleFavorite != null &&
+        showRaceInWebView != null &&
+        handleShareRace != null) {
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) {
+            return FavoritesScreen(
+              allRaces: allRaces!,
+              toggleFavorite: toggleFavorite!,
+              showRaceInWebView: showRaceInWebView!,
+              handleShareRace: handleShareRace!,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            // Deslizamiento desde abajo
+            final slideAnimation =
+                Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
+
+            return SlideTransition(position: slideAnimation, child: child);
+          },
+        ),
+      );
+    } else {
+      // Fallback al método original
+      onFavoritesTap();
+    }
+  }
+
+  // Método para mostrar popup de autenticación con animación
+  Future<void> _showAuthDialogWithAnimation(BuildContext context) async {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(
+        milliseconds: 400,
+      ), // Duración de la animación
+      pageBuilder:
+          (
+            BuildContext buildContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return const AuthDialog(); // Usar directamente el AuthDialog
+          },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        // Animación de deslizamiento desde abajo
+        final slideAnimation =
+            Tween<Offset>(
+              begin: const Offset(0.0, 1.0), // Comienza desde abajo
+              end: Offset.zero, // Termina en su posición normal
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic, // Curva suave para entrada natural
+              ),
+            );
+
+        return SlideTransition(position: slideAnimation, child: child);
+      },
     );
   }
 

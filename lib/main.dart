@@ -367,6 +367,20 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Método para refrescar solo los favoritos del usuario (pull-to-refresh)
+  Future<void> _refreshUserFavorites() async {
+    if (_authService.isLoggedIn) {
+      // Sincronizar favoritos desde Firestore para usuarios autenticados
+      await _loadFavoritesFromFirestore();
+    } else {
+      // Para usuarios no autenticados, cargar favoritos locales
+      await _loadFavoritesFromLocal(_allRaces);
+    }
+
+    // Aplicar filtros para actualizar la vista
+    _applyFilters();
+  }
+
   Future<void> _loadFavorites(List<Race> races) async {
     if (_authService.isLoggedIn) {
       await _loadFavoritesFromFirestore();
@@ -929,63 +943,93 @@ class _MyHomePageState extends State<MyHomePage> {
                                         .floor()
                                         .clamp(2, 4);
 
-                                return MasonryGridView.count(
-                                  padding: const EdgeInsets.all(12.0),
-                                  itemCount: _filteredRaces.length,
-                                  crossAxisCount: crossAxisCount,
-                                  crossAxisSpacing: 10.0,
-                                  mainAxisSpacing: 10.0,
-                                  itemBuilder: (context, index) {
-                                    final race = _filteredRaces[index];
-                                    return RaceCard(
-                                      race: race,
-                                      isGridView: true,
-                                      onTap: () {
-                                        if (race.registrationLink?.isNotEmpty ??
-                                            false) {
-                                          _showRaceInWebView(
-                                            race.registrationLink!,
-                                          );
-                                        } else {
-                                          debugPrint(
-                                            'No se encontró enlace para ${race.name}',
-                                          );
-                                        }
-                                      },
-                                      onFavoriteToggle: () =>
-                                          _toggleFavorite(race),
-                                      onShare: () => _handleShareRace(race),
-                                    );
-                                  },
+                                return RefreshIndicator(
+                                  onRefresh: _refreshUserFavorites,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.getPrimaryControlColor(
+                                          context,
+                                        ),
+                                  backgroundColor: AppTheme.getSurfaceColor(
+                                    context,
+                                  ),
+                                  child: MasonryGridView.count(
+                                    padding: const EdgeInsets.all(12.0),
+                                    itemCount: _filteredRaces.length,
+                                    crossAxisCount: crossAxisCount,
+                                    crossAxisSpacing: 10.0,
+                                    mainAxisSpacing: 10.0,
+                                    itemBuilder: (context, index) {
+                                      final race = _filteredRaces[index];
+                                      return RaceCard(
+                                        race: race,
+                                        isGridView: true,
+                                        onTap: () {
+                                          if (race
+                                                  .registrationLink
+                                                  ?.isNotEmpty ??
+                                              false) {
+                                            _showRaceInWebView(
+                                              race.registrationLink!,
+                                            );
+                                          } else {
+                                            debugPrint(
+                                              'No se encontró enlace para ${race.name}',
+                                            );
+                                          }
+                                        },
+                                        onFavoriteToggle: () =>
+                                            _toggleFavorite(race),
+                                        onShare: () => _handleShareRace(race),
+                                      );
+                                    },
+                                  ),
                                 );
                               } else {
-                                return ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4.0,
+                                return RefreshIndicator(
+                                  onRefresh: _refreshUserFavorites,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.getPrimaryControlColor(
+                                          context,
+                                        ),
+                                  backgroundColor: AppTheme.getSurfaceColor(
+                                    context,
                                   ),
-                                  itemCount: _filteredRaces.length,
-                                  itemBuilder: (context, index) {
-                                    final race = _filteredRaces[index];
-                                    return RaceCard(
-                                      race: race,
-                                      isGridView: false,
-                                      onTap: () {
-                                        if (race.registrationLink?.isNotEmpty ??
-                                            false) {
-                                          _showRaceInWebView(
-                                            race.registrationLink!,
-                                          );
-                                        } else {
-                                          debugPrint(
-                                            'No se encontró enlace para ${race.name}',
-                                          );
-                                        }
-                                      },
-                                      onFavoriteToggle: () =>
-                                          _toggleFavorite(race),
-                                      onShare: () => _handleShareRace(race),
-                                    );
-                                  },
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4.0,
+                                    ),
+                                    itemCount: _filteredRaces.length,
+                                    itemBuilder: (context, index) {
+                                      final race = _filteredRaces[index];
+                                      return RaceCard(
+                                        race: race,
+                                        isGridView: false,
+                                        onTap: () {
+                                          if (race
+                                                  .registrationLink
+                                                  ?.isNotEmpty ??
+                                              false) {
+                                            _showRaceInWebView(
+                                              race.registrationLink!,
+                                            );
+                                          } else {
+                                            debugPrint(
+                                              'No se encontró enlace para ${race.name}',
+                                            );
+                                          }
+                                        },
+                                        onFavoriteToggle: () =>
+                                            _toggleFavorite(race),
+                                        onShare: () => _handleShareRace(race),
+                                      );
+                                    },
+                                  ),
                                 );
                               }
                             },

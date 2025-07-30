@@ -37,7 +37,7 @@ class RaceCard extends StatelessWidget {
       fontWeight: FontWeight.bold,
     );
 
-    return InkWell(
+     return InkWell(
       onTap: onTap,
       child: Card(
         margin: EdgeInsets.symmetric(
@@ -49,7 +49,7 @@ class RaceCard extends StatelessWidget {
         color: AppTheme.getRaceCardBackground(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Padding(
-          padding: EdgeInsets.all(cardPadding),
+          padding: EdgeInsets.only(top: cardPadding, left: cardPadding, bottom: cardPadding, right: cardPadding/2),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,13 +124,11 @@ class RaceCard extends StatelessWidget {
                 const VerticalDivider(),
 
                 // Iconos de acción
-                Expanded(
-                  flex: 1,
+                SizedBox(
+                  width: 50,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      // Icono de favorito
-                      IconButton(
+                    children: [IconButton(
                         icon: Icon(
                           race.isFavorite
                               ? Icons.favorite
