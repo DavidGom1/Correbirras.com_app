@@ -93,8 +93,8 @@ class RaceService {
         final nameElement = tds[1];
         final typeImgElement = tds[2].querySelector("img[alt]");
         final terrainImgElement = tds[3].querySelector("img[alt]");
+        final placeElement = tds.length > 4 ? tds[4] : null;
         final zoneTdElement = tr.querySelector("td[bgcolor]");
-
         String? registrationLink;
         final linkElement = tds[1].querySelector('a[href]');
         if (linkElement != null) {
@@ -112,6 +112,7 @@ class RaceService {
         String? date = dateElement.text.trim();
         String? type = typeImgElement?.attributes['alt']?.trim();
         String? terrain = terrainImgElement?.attributes['alt']?.trim();
+        String? place = placeElement?.text.trim();
         String? zone;
         String? foundColorKey;
 
@@ -143,6 +144,7 @@ class RaceService {
             month: currentMonth,
             name: name,
             date: date,
+            place: place,
             zone: zone,
             type: type,
             terrain: terrain,

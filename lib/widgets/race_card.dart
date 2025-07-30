@@ -78,7 +78,7 @@ class RaceCard extends StatelessWidget {
                       if (race.date?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Fecha: ',
-                          '${race.date} - ${race.month}',
+                          '${race.date} - ${race.month.substring(0, 1).toUpperCase()}${race.month.substring(1).toLowerCase()}',
                           labelStyle,
                           resultRaceStyle,
                         ),
@@ -88,6 +88,15 @@ class RaceCard extends StatelessWidget {
                         _buildInfoRow(
                           'Zona: ',
                           '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                          labelStyle,
+                          resultRaceStyle,
+                        ),
+
+                      //Ciudad
+                      if (race.place?.isNotEmpty ?? false)
+                        _buildInfoRow(
+                          'Ciudad: ',
+                          '${race.place?.split('(')[0][0].toUpperCase()}${race.place?.split('(')[0].substring(1).toLowerCase()}',
                           labelStyle,
                           resultRaceStyle,
                         ),

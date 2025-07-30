@@ -665,6 +665,11 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                     },
+                    // Pasar los parámetros necesarios para la animación
+                    allRaces: _allRaces,
+                    toggleFavorite: _toggleFavorite,
+                    showRaceInWebView: _showRaceInWebView,
+                    handleShareRace: _handleShareRace,
                   ),
                   endDrawer: _isWebViewVisible
                       ? null

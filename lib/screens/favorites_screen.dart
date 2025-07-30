@@ -274,6 +274,13 @@ class FavoritesScreenState extends State<FavoritesScreen> {
               style: drawersTextStyle.copyWith(fontSize: 20),
             ),
             centerTitle: true,
+            automaticallyImplyLeading: true, // Asegurar que se muestre el botón de retroceso
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
           ),
           body: _favoriteRaces.isEmpty
               ? Center(

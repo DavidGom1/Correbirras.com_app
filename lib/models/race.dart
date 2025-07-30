@@ -2,6 +2,7 @@ class Race {
   final String month;
   final String name;
   final String? date;
+  final String? place;
   final String? zone;
   final String? type;
   final String? terrain;
@@ -13,6 +14,7 @@ class Race {
     required this.month,
     required this.name,
     this.date,
+    this.place,
     this.zone,
     this.type,
     this.terrain,
@@ -22,7 +24,7 @@ class Race {
 
   @override
   String toString() {
-    return 'Race(month: $month, name: $name, date: $date, zone: $zone, type: $type, terrain: $terrain, distances: $distances, link: $registrationLink)';
+    return 'Race(month: $month, name: $name, date: $date, place: $place, zone: $zone, type: $type, terrain: $terrain, distances: $distances, link: $registrationLink)';
   }
 
   // Método para convertir a JSON
@@ -31,6 +33,7 @@ class Race {
       'month': month,
       'name': name,
       'date': date,
+      'place': place,
       'zone': zone,
       'type': type,
       'terrain': terrain,
@@ -46,6 +49,7 @@ class Race {
       month: json['month'] ?? '',
       name: json['name'] ?? '',
       date: json['date'],
+      place: json['place'],
       zone: json['zone'],
       type: json['type'],
       terrain: json['terrain'],
@@ -59,6 +63,7 @@ class Race {
     String? month,
     String? name,
     String? date,
+    String? place,
     String? zone,
     String? type,
     String? terrain,
@@ -70,6 +75,7 @@ class Race {
       month: month ?? this.month,
       name: name ?? this.name,
       date: date ?? this.date,
+      place: place ?? this.place,
       zone: zone ?? this.zone,
       type: type ?? this.type,
       terrain: terrain ?? this.terrain,
