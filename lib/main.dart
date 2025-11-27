@@ -108,26 +108,24 @@ class _MyHomePageState extends State<MyHomePage> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
+    // Edge-to-edge: usar colores transparentes y dejar que Flutter maneje el contenido
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        statusBarColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
-        statusBarIconBrightness:
-            Brightness.light, // Iconos de status bar siempre blancos
-        statusBarBrightness:
-            Brightness.dark, // Para iOS, hace que los iconos sean blancos
-        systemNavigationBarColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
-        systemNavigationBarIconBrightness:
-            Brightness.light, // Iconos de navegación siempre blancos
-        systemNavigationBarDividerColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
+        // Status bar transparente para edge-to-edge
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        // Navigation bar transparente para edge-to-edge
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
         systemNavigationBarContrastEnforced: false,
       ),
     );
+
+    // Permitir que la app se dibuje detrás de las barras del sistema
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   @override
