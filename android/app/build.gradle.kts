@@ -25,7 +25,7 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName")
 
 android {
     namespace = "com.correbirras.agenda"
-    compileSdk = 36
+    compileSdk = 35
 
         compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -78,8 +78,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("androidx.core:core-ktx:1.6.0")
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-analytics")
 }
