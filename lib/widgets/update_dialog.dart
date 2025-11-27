@@ -10,23 +10,18 @@ class UpdateDialog extends StatelessWidget {
   final UpdateCheckResult updateResult;
   final VoidCallback? onDismiss;
 
-  const UpdateDialog({
-    super.key,
-    required this.updateResult,
-    this.onDismiss,
-  });
+  const UpdateDialog({super.key, required this.updateResult, this.onDismiss});
 
   bool get isForceUpdate => updateResult.status == UpdateStatus.forceUpdate;
 
   String get title =>
       isForceUpdate ? 'Actualización requerida' : '¡Nueva versión disponible!';
 
-  String get message =>
-      isForceUpdate
-          ? updateResult.config?.forceUpdateMessage ??
-              'Esta versión ya no es compatible. Por favor, actualiza para continuar.'
-          : updateResult.config?.updateMessage ??
-              '¡Hay una nueva versión disponible con mejoras!';
+  String get message => isForceUpdate
+      ? updateResult.config?.forceUpdateMessage ??
+            'Esta versión ya no es compatible. Por favor, actualiza para continuar.'
+      : updateResult.config?.updateMessage ??
+            '¡Hay una nueva versión disponible con mejoras!';
 
   String get currentVersionText =>
       'Versión actual: ${updateResult.currentVersion ?? "desconocida"}';
@@ -72,10 +67,7 @@ class UpdateDialog extends StatelessWidget {
       debugPrint('Error al abrir URL web: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -89,9 +81,7 @@ class UpdateDialog extends StatelessWidget {
       canPop: !isForceUpdate,
       child: AlertDialog(
         backgroundColor: isDark ? darkSurface : lightSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(
@@ -182,17 +172,11 @@ class UpdateDialog extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.3),
-                  ),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 18,
-                      color: Colors.red[400],
-                    ),
+                    Icon(Icons.info_outline, size: 18, color: Colors.red[400]),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -231,10 +215,7 @@ class UpdateDialog extends StatelessWidget {
                 icon: const Icon(Icons.download, size: 20),
                 label: const Text(
                   'Actualizar ahora',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
               // Botón secundario: Más tarde (solo si no es obligatorio)
@@ -271,10 +252,8 @@ class UpdateDialog extends StatelessWidget {
     return showDialog(
       context: context,
       barrierDismissible: updateResult.status != UpdateStatus.forceUpdate,
-      builder: (context) => UpdateDialog(
-        updateResult: updateResult,
-        onDismiss: onDismiss,
-      ),
+      builder: (context) =>
+          UpdateDialog(updateResult: updateResult, onDismiss: onDismiss),
     );
   }
 }

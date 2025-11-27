@@ -358,10 +358,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       if (result.status == UpdateStatus.forceUpdate ||
           result.status == UpdateStatus.optionalUpdate) {
-        await UpdateDialog.show(
-          context: context,
-          updateResult: result,
-        );
+        await UpdateDialog.show(context: context, updateResult: result);
       }
     } catch (e) {
       debugPrint('Error al comprobar actualizaciones: $e');

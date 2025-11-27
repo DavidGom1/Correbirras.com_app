@@ -23,9 +23,11 @@ class AppVersionConfig {
       minVersion: data['min_version'] ?? '1.0.0',
       latestVersion: data['latest_version'] ?? '1.0.0',
       updateMessage: data['update_message'] ?? '¡Nueva versión disponible!',
-      forceUpdateMessage: data['force_update_message'] ??
+      forceUpdateMessage:
+          data['force_update_message'] ??
           'Esta versión ya no es compatible. Por favor, actualiza para continuar.',
-      playStoreUrl: data['play_store_url'] ??
+      playStoreUrl:
+          data['play_store_url'] ??
           'https://play.google.com/store/apps/details?id=com.correbirras.agenda',
     );
   }
@@ -64,8 +66,10 @@ class AppUpdateService {
   /// Obtiene la configuración de versiones desde Firestore
   Future<AppVersionConfig?> _getVersionConfig() async {
     try {
-      final docSnapshot =
-          await _firestore.collection('app_config').doc('version').get();
+      final docSnapshot = await _firestore
+          .collection('app_config')
+          .doc('version')
+          .get();
 
       if (!docSnapshot.exists || docSnapshot.data() == null) {
         debugPrint('⚠️ Documento de versión no encontrado en Firestore');
