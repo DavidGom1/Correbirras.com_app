@@ -19,11 +19,13 @@ import 'models/race.dart';
 import 'services/auth_service.dart';
 import 'services/race_service.dart';
 import 'services/util_service.dart';
+import 'services/app_update_service.dart';
 import 'utils/notification_utils.dart';
 import 'utils/upgrader_messages.dart';
 import 'widgets/race_card.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/auth_dialog.dart';
+import 'widgets/update_dialog.dart';
 
 void main() async {
   // Aseguramos que Flutter esté completamente inicializado
@@ -97,6 +99,10 @@ class _MyHomePageState extends State<MyHomePage> {
   final AuthService _authService = AuthService();
   final RaceService _raceService = RaceService();
   final UtilService _utilService = UtilService();
+  final AppUpdateService _appUpdateService = AppUpdateService();
+
+  // Control para evitar mostrar el diálogo múltiples veces
+  bool _updateCheckDone = false;
 
   void _configureSystemUI() {
     final brightness = Theme.of(context).brightness;
@@ -340,6 +346,28 @@ class _MyHomePageState extends State<MyHomePage> {
     await _utilService.launchURL(url);
   }
 
+  // Método para comprobar actualizaciones de la app
+  Future<void> _checkForAppUpdate() async {
+    if (_updateCheckDone) return;
+    _updateCheckDone = true;
+
+    try {
+      final result = await _appUpdateService.checkForUpdate();
+
+      if (!mounted) return;
+
+      if (result.status == UpdateStatus.forceUpdate ||
+          result.status == UpdateStatus.optionalUpdate) {
+        await UpdateDialog.show(
+          context: context,
+          updateResult: result,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error al comprobar actualizaciones: $e');
+    }
+  }
+
   // Métodos para el manejo de carreras
   Future<void> _downloadHtmlAndParse() async {
     if (mounted) {
@@ -357,6 +385,9 @@ class _MyHomePageState extends State<MyHomePage> {
           _allRaces = races;
           _applyFilters(basicFilterChanged: true);
         });
+
+        // Comprobar actualizaciones después de cargar la app
+        _checkForAppUpdate();
       }
     } catch (e) {
       debugPrint("ERROR: Excepción durante la descarga: $e");

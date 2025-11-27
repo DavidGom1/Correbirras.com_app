@@ -79,9 +79,10 @@ class RaceService {
     String? currentMonth;
 
     for (var tr in table.querySelectorAll("tr")) {
-      final a = tr.querySelector("a[id]");
-      if (a != null && meseses.contains(a.id.toLowerCase())) {
-        currentMonth = a.id.toLowerCase();
+      final a = tr.querySelector("a[id], a[name]");
+      final detectedMonth = a != null ? _extractMonthFromAnchor(a) : null;
+      if (detectedMonth != null) {
+        currentMonth = detectedMonth;
         continue;
       }
 
@@ -231,6 +232,33 @@ class RaceService {
 
     allDistances.sort();
     return DistanceRange(min: allDistances.first, max: allDistances.last);
+  }
+
+  String? _extractMonthFromAnchor(html_dom.Element anchor) {
+    final candidates = <String?>[
+      anchor.id,
+      anchor.attributes['name'],
+      anchor.text,
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate == null || candidate.trim().isEmpty) continue;
+      final normalized = candidate
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-záéíóúüñ]'), '')
+          .replaceAll('á', 'a')
+          .replaceAll('é', 'e')
+          .replaceAll('í', 'i')
+          .replaceAll('ó', 'o')
+          .replaceAll('ú', 'u')
+          .replaceAll('ü', 'u')
+          .replaceAll('ñ', 'n');
+      if (meseses.contains(normalized)) {
+        return normalized;
+      }
+    }
+
+    return null;
   }
 }
 

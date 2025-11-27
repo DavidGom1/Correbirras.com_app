@@ -1,6 +1,6 @@
 🎉 *ACTUALIZACIÓN DE LA APP CORREBIRRAS* 🎉
 
-📅 *Versión:* 1.0.0+18 
+📅 *Versión:* 1.0.0+20
 🗓️ *Fecha:* 30 de Julio de 2025
 Para disfrutar de los cambios, actualiza tu app en el siguiente enlace:
 https://play.google.com/store/apps/details?id=com.correbirras.agenda 
