@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/screens/favorites_screen.dart';
+import 'package:correbirras/screens/intro_screen.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -59,7 +60,13 @@ class MyApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeProvider.themeMode,
-              home: const MyHomePage(title: 'Correbirras.com'),
+              debugShowCheckedModeBanner: false,
+              initialRoute: '/intro',
+              routes: {
+                '/intro': (context) => const IntroScreen(),
+                '/home': (context) =>
+                    const MyHomePage(title: 'Correbirras.com'),
+              },
             ),
           );
         },
