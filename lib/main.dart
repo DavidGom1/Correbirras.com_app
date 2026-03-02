@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'dart:convert';
 
 // Imports refactorizados
 import 'core/theme/app_theme.dart';
@@ -96,6 +97,18 @@ class _MyHomePageState extends State<MyHomePage> {
   final AuthService _authService = AuthService();
   final RaceService _raceService = RaceService();
   final UtilService _utilService = UtilService();
+
+  // Genera un ID seguro para Firestore a partir del nombre de la carrera
+  // Evita caracteres no permitidos como '/'.
+  String _favoriteDocId(String raceName) {
+    try {
+      // Base64 URL-safe del nombre para evitar caracteres prohibidos
+      return base64Url.encode(utf8.encode(raceName));
+    } catch (_) {
+      // Fallback simple por si hay caracteres no codificables
+      return raceName.replaceAll('/', '_');
+    }
+  }
 
   void _configureSystemUI() {
     final brightness = Theme.of(context).brightness;
@@ -247,7 +260,10 @@ class _MyHomePageState extends State<MyHomePage> {
             .doc(_authService.currentUser!.uid);
 
         if (race.isFavorite) {
-          await userDoc.collection('favorites').doc(race.name).set({
+          await userDoc
+              .collection('favorites')
+              .doc(_favoriteDocId(race.name))
+              .set({
             'raceName': race.name,
             'month': race.month,
             'zone': race.zone,
@@ -266,7 +282,10 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           }
         } else {
-          await userDoc.collection('favorites').doc(race.name).delete();
+          await userDoc
+              .collection('favorites')
+              .doc(_favoriteDocId(race.name))
+              .delete();
           if (mounted) {
             NotificationUtils.showInfo(
               context,
