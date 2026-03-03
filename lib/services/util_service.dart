@@ -55,11 +55,11 @@ class UtilService {
 🏃‍♂️ ¡Echa un vistazo a esta carrera!
 
 📅 Carrera: ${race.name}
-📍 Fecha: ${race.date} - ${race.month}
+📍 Fecha: ${race.date} - ${race.month}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}
 🌍 Zona: ${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase() ?? ''}
-🏃 Tipo: ${race.type ?? 'No especificado'}
-🌲 Terreno: ${race.terrain ?? 'No especificado'}
+🏃 Tipo: ${race.type ?? 'No especificado'}${race.senderista ? ' 🥾' : ''}
 📏 Distancias: ${_formatDistances(race.distances)}
+💰 Precio: ${race.precio ?? 'No especificado'}
 
 ${race.registrationLink?.isNotEmpty ?? false ? '🔗 Más información: ${race.registrationLink}' : ''}
 

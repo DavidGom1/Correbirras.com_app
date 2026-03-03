@@ -11,8 +11,8 @@ class RaceService {
   factory RaceService() => _instance;
   RaceService._internal();
 
-  static const String _raceUrl =
-      'https://www.correbirras.com/Agenda_carreras.html';
+  // URL actualizada - el webmaster unificó todo en Agenda.html
+  static const String _raceUrl = 'https://correbirras.com/Agenda.html';
 
   Future<String> _decodeHtml(http.Response response) async {
     String htmlContent = "";
@@ -35,13 +35,16 @@ class RaceService {
   }
 
   List<double> _getDistances(String textContent) {
-    final RegExp regExp = RegExp(r"(\d+)\s*m", caseSensitive: false);
+    // Buscar patrones como "10K", "21K", "5K", "42K", "15,5K", "10.5K"
+    final RegExp regExp = RegExp(r"(\d+[.,]?\d*)\s*[kK]", caseSensitive: false);
     List<double> distances = [];
-    for (final match in regExp.allMatches(textContent.replaceAll('.', ''))) {
+    for (final match in regExp.allMatches(textContent)) {
       if (match.group(1) != null) {
-        distances.add(
-          (double.parse(match.group(1)!) / 100.0).truncateToDouble() / 10.0,
-        );
+        String numStr = match.group(1)!.replaceAll(',', '.');
+        double? value = double.tryParse(numStr);
+        if (value != null && value > 0) {
+          distances.add(value);
+        }
       }
     }
     return distances;
@@ -66,97 +69,215 @@ class RaceService {
     }
   }
 
-  List<Race> _parseHtmlAndExtractRaces(String htmlContent) {
-    final document = parse(htmlContent);
-    final table = document.querySelector("table");
+  /// Extrae la zona/provincia desde las clases CSS del elemento <td> de provincia.
+  /// Ejemplo: class="col-provincia provincia-murcia" → "murcia"
+  String? _extractZoneFromProvinciaClass(html_dom.Element? td) {
+    if (td == null) return null;
 
-    if (table == null) {
-      debugPrint("ERROR: No se encontró tabla en el HTML");
-      return [];
+    final classes = td.className.toLowerCase().split(' ');
+    for (var cls in classes) {
+      if (cls.startsWith('provincia-')) {
+        final provincia = cls.replaceFirst('provincia-', '').trim();
+        // Mapear al nombre de zona interno de la app
+        return provinciasAZonas[provincia] ?? provincia;
+      }
     }
 
+    // Fallback: usar el texto del td
+    final text = td.text.trim().toLowerCase();
+    return provinciasAZonas[text] ?? text;
+  }
+
+  List<Race> _parseHtmlAndExtractRaces(String htmlContent) {
+    final document = parse(htmlContent);
     List<Race> parsedRaces = [];
+
+    // La nueva estructura tiene un <h2 id="mes" class="mes-titulo"> seguido de
+    // un <div class="table-container"><table class="agenda-table">...</table></div>
+    // para cada mes.
+
+    // Estrategia: buscar todos los h2 con clase "mes-titulo" y para cada uno,
+    // buscar la tabla siguiente.
+    final allElements = document.querySelectorAll(
+      'h2.mes-titulo, table.agenda-table',
+    );
+
     String? currentMonth;
 
-    for (var tr in table.querySelectorAll("tr")) {
-      final a = tr.querySelector("a[id]");
-      if (a != null && meseses.contains(a.id.toLowerCase())) {
-        currentMonth = a.id.toLowerCase();
+    for (var element in allElements) {
+      if (element.localName == 'h2') {
+        // Extraer el mes desde el id del h2 (ej: id="marzo")
+        final monthId = element.id.toLowerCase();
+        if (meseses.contains(monthId)) {
+          currentMonth = monthId;
+          debugPrint("📅 Parseando mes: $currentMonth");
+        }
         continue;
       }
 
-      if (currentMonth != null) {
-        final List<html_dom.Element> tds = tr.querySelectorAll("td");
-        if (tds.length < 4) continue;
+      // Si es una tabla y tenemos un mes actual
+      if (element.localName == 'table' && currentMonth != null) {
+        final tbody = element.querySelector('tbody');
+        final rows =
+            tbody?.querySelectorAll('tr') ??
+            element.querySelectorAll('tbody > tr');
 
-        final dateElement = tds[0];
-        final nameElement = tds[1];
-        final typeImgElement = tds[2].querySelector("img[alt]");
-        final terrainImgElement = tds[3].querySelector("img[alt]");
-        final placeElement = tds.length > 4 ? tds[4] : null;
-        final zoneTdElement = tr.querySelector("td[bgcolor]");
-        String? registrationLink;
-        final linkElement = tds[1].querySelector('a[href]');
-        if (linkElement != null) {
-          final href = linkElement.attributes['href'];
-          if (href != null &&
-              !href.startsWith('#') &&
-              (href.startsWith('http://') || href.startsWith('https://'))) {
-            registrationLink = href;
-          }
-        }
-
-        String? name = nameElement.text.trim();
-        if (name.isEmpty) continue;
-
-        String? date = dateElement.text.trim();
-        String? type = typeImgElement?.attributes['alt']?.trim();
-        String? terrain = terrainImgElement?.attributes['alt']?.trim();
-        String? place = placeElement?.text.trim();
-        String? zone;
-        String? foundColorKey;
-
-        if (zoneTdElement != null) {
-          final bgColor = zoneTdElement.attributes['bgcolor']?.toLowerCase();
-          if (bgColor != null) {
-            for (var entry in zonascolores.entries) {
-              if (bgColor.contains(entry.value)) {
-                foundColorKey = entry.key;
-                break;
-              }
-            }
+        if (rows.isEmpty) {
+          // Si no hay tbody, buscar tr directamente
+          final directRows = element.querySelectorAll('tr');
+          for (var tr in directRows) {
+            // Saltar el thead row
+            if (tr.parent?.localName == 'thead') continue;
+            final race = _parseRow(tr, currentMonth);
+            if (race != null) parsedRaces.add(race);
           }
         } else {
-          final outerHtml = tr.outerHtml.toLowerCase();
-          for (var entry in zonascolores.entries) {
-            if (outerHtml.contains(entry.value)) {
-              foundColorKey = entry.key;
-              break;
-            }
+          for (var tr in rows) {
+            final race = _parseRow(tr, currentMonth);
+            if (race != null) parsedRaces.add(race);
           }
         }
-
-        zone = foundColorKey;
-        final distances = _getDistances(tds.length > 5 ? tds[5].text : '');
-
-        parsedRaces.add(
-          Race(
-            month: currentMonth,
-            name: name,
-            date: date,
-            place: place,
-            zone: zone,
-            type: type,
-            terrain: terrain,
-            distances: distances,
-            registrationLink: registrationLink,
-          ),
-        );
       }
+    }
+
+    // Si la estrategia por h2+table no funciona, intentar con data attributes
+    if (parsedRaces.isEmpty) {
+      debugPrint("⚠️ Fallback: buscando tablas sin h2.mes-titulo...");
+      parsedRaces = _parseWithFallback(document);
     }
 
     debugPrint("✅ Parseadas ${parsedRaces.length} carreras");
     return parsedRaces;
+  }
+
+  Race? _parseRow(html_dom.Element tr, String currentMonth) {
+    // Extraer datos desde clases CSS específicas
+    final fechaTd = tr.querySelector('td.col-fecha');
+    final horaTd = tr.querySelector('td.col-hora');
+    final carreraTd = tr.querySelector('td.col-carrera');
+    final tipoTd = tr.querySelector('td.col-tipo');
+    final senderistaTd = tr.querySelector('td.col-senderista');
+    final localidadTd = tr.querySelector('td.col-localidad');
+    final provinciaTd = tr.querySelector('td.col-provincia');
+    final distanciaTd = tr.querySelector('td.col-distancia');
+    final precioTd = tr.querySelector('td.col-precio');
+
+    // Si no hay celda de carrera o está vacía, saltar esta fila
+    if (carreraTd == null) return null;
+
+    String name = carreraTd.text.trim();
+    if (name.isEmpty) return null;
+
+    // Obtener link de inscripción
+    String? registrationLink;
+    final linkElement = carreraTd.querySelector('a[href]');
+    if (linkElement != null) {
+      final href = linkElement.attributes['href'];
+      if (href != null &&
+          !href.startsWith('#') &&
+          (href.startsWith('http://') || href.startsWith('https://'))) {
+        registrationLink = href;
+      }
+    }
+
+    // Extraer los datos de cada celda
+    String? date = fechaTd?.text.trim();
+    String? hora = horaTd?.text.trim();
+    String? place = localidadTd?.text.trim();
+    String? zone = _extractZoneFromProvinciaClass(provinciaTd);
+
+    // Tipo: extraer desde el span.tag o el data-tipo del tr
+    String? type;
+    final tipoSpan = tipoTd?.querySelector('span.tag');
+    if (tipoSpan != null) {
+      type = tipoSpan.text.trim();
+    } else if (tipoTd != null) {
+      type = tipoTd.text.trim();
+    }
+    // Fallback al data-tipo del tr
+    if ((type == null || type.isEmpty) &&
+        tr.attributes.containsKey('data-tipo')) {
+      type = tr.attributes['data-tipo'];
+      if (type != null && type.isNotEmpty) {
+        type = type[0].toUpperCase() + type.substring(1);
+      }
+    }
+
+    // Senderista: si tiene el emoji 🥾
+    bool senderista = false;
+    if (senderistaTd != null) {
+      senderista = senderistaTd.text.contains('🥾');
+    }
+
+    // Distancias
+    List<double> distances = [];
+    if (distanciaTd != null) {
+      distances = _getDistances(distanciaTd.text);
+    }
+
+    // Precio
+    String? precio;
+    if (precioTd != null) {
+      precio = precioTd.text.trim();
+      if (precio.isEmpty) precio = null;
+    }
+
+    // Limpiar hora vacía
+    if (hora != null && hora.isEmpty) hora = null;
+
+    return Race(
+      month: currentMonth,
+      name: name,
+      date: date,
+      hora: hora,
+      place: place,
+      zone: zone,
+      type: type,
+      distances: distances,
+      registrationLink: registrationLink,
+      precio: precio,
+      senderista: senderista,
+    );
+  }
+
+  /// Fallback: parsear buscando todas las tablas con agenda-table
+  /// y determinando el mes desde el h2 más cercano anterior
+  List<Race> _parseWithFallback(html_dom.Document document) {
+    List<Race> races = [];
+
+    // Buscar todos los h2 que podrían ser headers de mes
+    final allH2 = document.querySelectorAll('h2');
+    final tables = document.querySelectorAll('table');
+
+    String currentMonth = 'enero'; // default
+
+    for (var h2 in allH2) {
+      final id = h2.id.toLowerCase();
+      if (meseses.contains(id)) {
+        currentMonth = id;
+      }
+
+      // Encontrar el texto del h2 para meses que no tienen id
+      final text = h2.text.toLowerCase();
+      for (var mes in meseses) {
+        if (text.contains(mes)) {
+          currentMonth = mes;
+          break;
+        }
+      }
+    }
+
+    // Parsear todas las tablas
+    for (var table in tables) {
+      final rows = table.querySelectorAll('tbody tr');
+      for (var tr in rows) {
+        // Intentar determinar el mes desde data-attributes o contexto
+        final race = _parseRow(tr, currentMonth);
+        if (race != null) races.add(race);
+      }
+    }
+
+    return races;
   }
 
   // Métodos de filtrado
