@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:correbirras/screens/favorites_screen.dart';
+import 'package:correbirras/screens/intro_screen.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +26,7 @@ import 'utils/upgrader_messages.dart';
 import 'widgets/race_card.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/auth_dialog.dart';
+import 'widgets/app_update_listener.dart';
 
 void main() async {
   // Aseguramos que Flutter esté completamente inicializado
@@ -52,12 +55,20 @@ class MyApp extends StatelessWidget {
       create: (context) => ThemeProvider(),
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          return MaterialApp(
-            title: 'Agenda de carreras Correbirras',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            home: const MyHomePage(title: 'Correbirras.com'),
+          return AppUpdateListener(
+            child: MaterialApp(
+              title: 'Agenda de carreras Correbirras',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeProvider.themeMode,
+              debugShowCheckedModeBanner: false,
+              initialRoute: '/intro',
+              routes: {
+                '/intro': (context) => const IntroScreen(),
+                '/home': (context) =>
+                    const MyHomePage(title: 'Correbirras.com'),
+              },
+            ),
           );
         },
       ),

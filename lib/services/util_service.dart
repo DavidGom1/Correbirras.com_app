@@ -19,21 +19,24 @@ class UtilService {
 
   // Function to rate the app on Google Play
   Future<void> rateApp({String? packageName}) async {
-    final String appPackage = packageName ?? 'YOUR_APP_PACKAGE_NAME';
-    final Uri uri = Uri.parse('market://details?id=$appPackage');
+    const String defaultPackage = 'com.correbirras.agenda';
+    final String appPackage = packageName ?? defaultPackage;
+    final Uri storeUri = Uri.parse(
+      'market://details?id=$appPackage&showAllReviews=true',
+    );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    if (await canLaunchUrl(storeUri)) {
+      await launchUrl(storeUri, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    final Uri webUri = Uri.parse(
+      'https://play.google.com/store/apps/details?id=$appPackage&showAllReviews=true',
+    );
+    if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
     } else {
-      // Fallback for when the Play Store app is not installed
-      final Uri webUri = Uri.parse(
-        'https://play.google.com/store/apps/details?id=$appPackage',
-      );
-      if (await canLaunchUrl(webUri)) {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Could not launch $webUri';
-      }
+      throw 'Could not launch $webUri';
     }
   }
 
