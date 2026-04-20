@@ -11,8 +11,8 @@ class RaceService {
   factory RaceService() => _instance;
   RaceService._internal();
 
-  // URL actualizada - el webmaster unificó todo en Agenda.html
-  static const String _raceUrl = 'https://correbirras.com/Agenda.html';
+  // URL actualizada - nueva ubicación indicada por el usuario
+  static const String _raceUrl = 'https://www.correbirras.com/Carreras_Agenda.html';
 
   Future<String> _decodeHtml(http.Response response) async {
     String htmlContent = "";
