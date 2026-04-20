@@ -37,7 +37,7 @@ class RaceCard extends StatelessWidget {
       fontWeight: FontWeight.bold,
     );
 
-     return InkWell(
+    return InkWell(
       onTap: onTap,
       child: Card(
         margin: EdgeInsets.symmetric(
@@ -49,7 +49,12 @@ class RaceCard extends StatelessWidget {
         color: AppTheme.getRaceCardBackground(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Padding(
-          padding: EdgeInsets.only(top: cardPadding, left: cardPadding, bottom: cardPadding, right: cardPadding/2),
+          padding: EdgeInsets.only(
+            top: cardPadding,
+            left: cardPadding,
+            bottom: cardPadding,
+            right: cardPadding / 2,
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,11 +79,11 @@ class RaceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8.0),
 
-                      // Fecha
+                      // Fecha y Hora
                       if (race.date?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Fecha: ',
-                          '${race.date} - ${race.month.substring(0, 1).toUpperCase()}${race.month.substring(1).toLowerCase()}',
+                          '${race.date} - ${race.month.substring(0, 1).toUpperCase()}${race.month.substring(1).toLowerCase()}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}',
                           labelStyle,
                           resultRaceStyle,
                         ),
@@ -101,20 +106,11 @@ class RaceCard extends StatelessWidget {
                           resultRaceStyle,
                         ),
 
-                      // Tipo
+                      // Tipo + Senderista
                       if (race.type?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Tipo: ',
-                          race.type!,
-                          labelStyle,
-                          resultRaceStyle,
-                        ),
-
-                      // Terreno
-                      if (race.terrain?.isNotEmpty ?? false)
-                        _buildInfoRow(
-                          'Terreno: ',
-                          race.terrain!,
+                          '${race.type!}${race.senderista ? ' 🥾' : ''}',
                           labelStyle,
                           resultRaceStyle,
                         ),
@@ -126,6 +122,15 @@ class RaceCard extends StatelessWidget {
                         labelStyle,
                         resultRaceStyle,
                       ),
+
+                      // Precio
+                      if (race.precio?.isNotEmpty ?? false)
+                        _buildInfoRow(
+                          'Precio: ',
+                          '${race.precio}€',
+                          labelStyle,
+                          resultRaceStyle,
+                        ),
                     ],
                   ),
                 ),
@@ -137,7 +142,8 @@ class RaceCard extends StatelessWidget {
                   width: 50,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [IconButton(
+                    children: [
+                      IconButton(
                         icon: Icon(
                           race.isFavorite
                               ? Icons.favorite
