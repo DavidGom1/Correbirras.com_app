@@ -25,7 +25,7 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName")
 
 android {
     namespace = "com.correbirras.agenda"
-    compileSdk = 35
+    compileSdk = 36
 
         compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

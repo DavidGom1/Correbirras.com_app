@@ -1,4 +1,4 @@
-import 'dart:ui';
+// import dart:ui no necesario, lo provee flutter/material.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -27,6 +27,8 @@ import 'widgets/race_card.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/auth_dialog.dart';
 import 'widgets/app_update_listener.dart';
+import 'widgets/banner_ad_widget.dart';
+import 'services/ad_service.dart';
 
 void main() async {
   // Aseguramos que Flutter esté completamente inicializado
@@ -42,6 +44,9 @@ void main() async {
     debugPrint("❌ Error al inicializar Firebase: $e");
     // Continuar sin Firebase en caso de error
   }
+
+  // Inicializar Google Mobile Ads
+  await AdService().initialize();
 
   runApp(const MyApp());
 }
@@ -1101,150 +1106,158 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                             ),
                           ),
-                    body: isLoading
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                AppTheme.getSpinKitPumpingHeart(context),
-                                const SizedBox(height: 20),
-                                const Text(
-                                  'Cargando carreras...',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Stack(
-                            children: [
-                              // Lista principal de carreras
-                              if (!_isWebViewVisible)
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    const double tabletBreakpoint = 600.0;
-
-                                    if (constraints.maxWidth >
-                                        tabletBreakpoint) {
-                                      int crossAxisCount =
-                                          (constraints.maxWidth / 350.0)
-                                              .floor()
-                                              .clamp(2, 4);
-
-                                      return RefreshIndicator(
-                                        onRefresh: _refreshUserFavorites,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : AppTheme.getPrimaryControlColor(
-                                                context,
-                                              ),
-                                        backgroundColor:
-                                            AppTheme.getSurfaceColor(context),
-                                        child: MasonryGridView.count(
-                                          padding: const EdgeInsets.all(12.0),
-                                          itemCount: _filteredRaces.length,
-                                          crossAxisCount: crossAxisCount,
-                                          crossAxisSpacing: 10.0,
-                                          mainAxisSpacing: 10.0,
-                                          itemBuilder: (context, index) {
-                                            final race = _filteredRaces[index];
-                                            return RaceCard(
-                                              race: race,
-                                              isGridView: true,
-                                              onTap: () {
-                                                if (race
-                                                        .registrationLink
-                                                        ?.isNotEmpty ??
-                                                    false) {
-                                                  _showRaceInWebView(
-                                                    race.registrationLink!,
-                                                  );
-                                                } else {
-                                                  debugPrint(
-                                                    'No se encontró enlace para ${race.name}',
-                                                  );
-                                                }
-                                              },
-                                              onFavoriteToggle: () =>
-                                                  _toggleFavorite(race),
-                                              onShare: () =>
-                                                  _handleShareRace(race),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    } else {
-                                      return RefreshIndicator(
-                                        onRefresh: _refreshUserFavorites,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : AppTheme.getPrimaryControlColor(
-                                                context,
-                                              ),
-                                        backgroundColor:
-                                            AppTheme.getSurfaceColor(context),
-                                        child: ListView.builder(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0,
-                                          ),
-                                          itemCount: _filteredRaces.length,
-                                          itemBuilder: (context, index) {
-                                            final race = _filteredRaces[index];
-                                            return RaceCard(
-                                              race: race,
-                                              isGridView: false,
-                                              onTap: () {
-                                                if (race
-                                                        .registrationLink
-                                                        ?.isNotEmpty ??
-                                                    false) {
-                                                  _showRaceInWebView(
-                                                    race.registrationLink!,
-                                                  );
-                                                } else {
-                                                  debugPrint(
-                                                    'No se encontró enlace para ${race.name}',
-                                                  );
-                                                }
-                                              },
-                                              onFavoriteToggle: () =>
-                                                  _toggleFavorite(race),
-                                              onShare: () =>
-                                                  _handleShareRace(race),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-
-                              // WebView overlay
-                              if (_isWebViewVisible)
-                                Container(
-                                  color: AppTheme.getScaffoldBackground(
-                                    context,
-                                  ),
+                    body: Column(
+                      children: [
+                        Expanded(
+                          child: isLoading
+                              ? Center(
                                   child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      if (_isWebViewLoading)
-                                        const LinearProgressIndicator(),
-                                      Expanded(
-                                        child: WebViewWidget(
-                                          controller: _controller,
+                                      AppTheme.getSpinKitPumpingHeart(context),
+                                      const SizedBox(height: 20),
+                                      const Text(
+                                        'Cargando carreras...',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
                                   ),
+                                )
+                              : Stack(
+                                  children: [
+                                    // Lista principal de carreras
+                                    if (!_isWebViewVisible)
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          const double tabletBreakpoint = 600.0;
+
+                                          if (constraints.maxWidth >
+                                              tabletBreakpoint) {
+                                            int crossAxisCount =
+                                                (constraints.maxWidth / 350.0)
+                                                    .floor()
+                                                    .clamp(2, 4);
+
+                                            return RefreshIndicator(
+                                              onRefresh: _refreshUserFavorites,
+                                              color:
+                                                  Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : AppTheme.getPrimaryControlColor(
+                                                      context,
+                                                    ),
+                                              backgroundColor:
+                                                  AppTheme.getSurfaceColor(context),
+                                              child: MasonryGridView.count(
+                                                padding: const EdgeInsets.all(12.0),
+                                                itemCount: _filteredRaces.length,
+                                                crossAxisCount: crossAxisCount,
+                                                crossAxisSpacing: 10.0,
+                                                mainAxisSpacing: 10.0,
+                                                itemBuilder: (context, index) {
+                                                  final race = _filteredRaces[index];
+                                                  return RaceCard(
+                                                    race: race,
+                                                    isGridView: true,
+                                                    onTap: () {
+                                                      if (race
+                                                              .registrationLink
+                                                              ?.isNotEmpty ??
+                                                          false) {
+                                                        _showRaceInWebView(
+                                                          race.registrationLink!,
+                                                        );
+                                                      } else {
+                                                        debugPrint(
+                                                          'No se encontró enlace para ${race.name}',
+                                                        );
+                                                      }
+                                                    },
+                                                    onFavoriteToggle: () =>
+                                                        _toggleFavorite(race),
+                                                    onShare: () =>
+                                                        _handleShareRace(race),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          } else {
+                                            return RefreshIndicator(
+                                              onRefresh: _refreshUserFavorites,
+                                              color:
+                                                  Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : AppTheme.getPrimaryControlColor(
+                                                      context,
+                                                    ),
+                                              backgroundColor:
+                                                  AppTheme.getSurfaceColor(context),
+                                              child: ListView.builder(
+                                                padding: const EdgeInsets.symmetric(
+                                                  vertical: 4.0,
+                                                ),
+                                                itemCount: _filteredRaces.length,
+                                                itemBuilder: (context, index) {
+                                                  final race = _filteredRaces[index];
+                                                  return RaceCard(
+                                                    race: race,
+                                                    isGridView: false,
+                                                    onTap: () {
+                                                      if (race
+                                                              .registrationLink
+                                                              ?.isNotEmpty ??
+                                                          false) {
+                                                        _showRaceInWebView(
+                                                          race.registrationLink!,
+                                                        );
+                                                      } else {
+                                                        debugPrint(
+                                                          'No se encontró enlace para ${race.name}',
+                                                        );
+                                                      }
+                                                    },
+                                                    onFavoriteToggle: () =>
+                                                        _toggleFavorite(race),
+                                                    onShare: () =>
+                                                        _handleShareRace(race),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+
+                                    // WebView overlay
+                                    if (_isWebViewVisible)
+                                      Container(
+                                        color: AppTheme.getScaffoldBackground(
+                                          context,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            if (_isWebViewLoading)
+                                              const LinearProgressIndicator(),
+                                            Expanded(
+                                              child: WebViewWidget(
+                                                controller: _controller,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                            ],
-                          ),
+                        ),
+                        // Banner de AdMob en la parte inferior
+                        const BannerAdWidget(),
+                      ],
+                    ),
                   ),
                 ),
               ),

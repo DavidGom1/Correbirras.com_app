@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.correbirras.agenda">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.correbirras.agenda">
    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Correbirras"
@@ -28,6 +30,15 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2615746028420247~2357104598"/>
+        <!-- Resolver conflicto AD_SERVICES_CONFIG entre Firebase Analytics y AdMob -->
+        <property
+            android:name="android.adservices.AD_SERVICES_CONFIG"
+            android:resource="@xml/gma_ad_services_config"
+            tools:replace="android:resource"/>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
