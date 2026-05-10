@@ -7,6 +7,7 @@ import '../core/theme/theme_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../widgets/auth_dialog.dart'; // Importar el AuthDialog
 import '../screens/favorites_screen.dart'; // Importar FavoritesScreen
+import '../screens/ranking_screen.dart'; // Importar RankingScreen
 import '../models/race.dart'; // Importar el modelo Race
 
 class AppDrawer extends StatelessWidget {
@@ -188,6 +189,16 @@ class AppDrawer extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context); // Cerrar drawer
                     _navigateToFavoritesWithAnimation(context);
+                  },
+                ),
+
+                // ListTile para "Ranking"
+                ListTile(
+                  leading: Icon(Icons.emoji_events),
+                  title: const Text('Ranking de carreras'),
+                  onTap: () {
+                    Navigator.pop(context); // Cerrar drawer
+                    _navigateToRankingWithAnimation(context);
                   },
                 ),
 
@@ -391,6 +402,31 @@ class AppDrawer extends StatelessWidget {
       // Fallback al método original
       onFavoritesTap();
     }
+  }
+
+  // Método para navegar al ranking con animación personalizada
+  void _navigateToRankingWithAnimation(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return RankingScreen(allRaces: allRaces ?? []);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final slideAnimation =
+              Tween<Offset>(
+                begin: const Offset(0.0, 1.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              );
+          return SlideTransition(position: slideAnimation, child: child);
+        },
+      ),
+    );
   }
 
   // Método para mostrar popup de autenticación con animación

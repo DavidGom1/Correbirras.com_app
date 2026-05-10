@@ -55,8 +55,10 @@ class FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   // Llama a la función de webview pasada desde MyHomePage
+  // Primero cierra la pantalla de favoritos para que el WebView sea visible
   void _handleShowRaceInWebView(String url) {
-    widget.showRaceInWebView(url); // Llama a la función recibida
+    Navigator.of(context).pop(); // Cerrar favoritos primero
+    widget.showRaceInWebView(url); // Abrir WebView en la pantalla principal
   }
 
   void _handleShareRace(Race race) {

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' show parse;
-import 'package:html/dom.dart' as html_dom;
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import '../models/race.dart';
 import '../core/constants/app_constants.dart';
 
@@ -11,273 +10,90 @@ class RaceService {
   factory RaceService() => _instance;
   RaceService._internal();
 
-  // URL actualizada - el webmaster unificó todo en Agenda.html
-  static const String _raceUrl = 'https://correbirras.com/Agenda.html';
+  // Credenciales de Supabase (se actualizan desde Remote Config)
+  String _supabaseUrl = defaultSupabaseUrl;
+  String _supabaseAnonKey = defaultSupabaseAnonKey;
+  bool _remoteConfigInitialized = false;
 
-  Future<String> _decodeHtml(http.Response response) async {
-    String htmlContent = "";
+  /// Inicializa Firebase Remote Config y obtiene las credenciales de Supabase.
+  /// Si falla, se usan los valores por defecto hardcodeados.
+  Future<void> _ensureRemoteConfig() async {
+    if (_remoteConfigInitialized) return;
+
     try {
-      final contentType = response.headers['content-type'];
-      if (contentType != null &&
-          contentType.toLowerCase().contains('charset=iso-8859-1')) {
-        htmlContent = latin1.decode(response.bodyBytes);
-        debugPrint("DEBUG: Decodificando como ISO-8859-1 (Latin-1)");
-      } else {
-        htmlContent = utf8.decode(response.bodyBytes, allowMalformed: true);
-        debugPrint("DEBUG: Decodificando como UTF-8");
-      }
+      final remoteConfig = FirebaseRemoteConfig.instance;
+
+      await remoteConfig.setDefaults({
+        'supabase_url': defaultSupabaseUrl,
+        'supabase_anon_key': defaultSupabaseAnonKey,
+      });
+
+      // Fetch con timeout corto para no bloquear la app
+      await remoteConfig.setConfigSettings(RemoteConfigSettings(
+        fetchTimeout: const Duration(seconds: 10),
+        minimumFetchInterval: const Duration(hours: 1),
+      ));
+
+      await remoteConfig.fetchAndActivate();
+
+      _supabaseUrl = remoteConfig.getString('supabase_url');
+      _supabaseAnonKey = remoteConfig.getString('supabase_anon_key');
+
+      debugPrint("✅ Remote Config: credenciales Supabase obtenidas");
+      debugPrint("   URL: $_supabaseUrl");
     } catch (e) {
-      debugPrint("ERROR: Fallo al decodificar: $e");
-      htmlContent = utf8.decode(response.bodyBytes, allowMalformed: true);
-      debugPrint("DEBUG: Fallback a UTF-8 (allowMalformed)");
+      debugPrint("⚠️ Remote Config no disponible, usando valores por defecto: $e");
+      _supabaseUrl = defaultSupabaseUrl;
+      _supabaseAnonKey = defaultSupabaseAnonKey;
     }
-    return htmlContent;
+
+    _remoteConfigInitialized = true;
   }
 
-  List<double> _getDistances(String textContent) {
-    // Buscar patrones como "10K", "21K", "5K", "42K", "15,5K", "10.5K"
-    final RegExp regExp = RegExp(r"(\d+[.,]?\d*)\s*[kK]", caseSensitive: false);
-    List<double> distances = [];
-    for (final match in regExp.allMatches(textContent)) {
-      if (match.group(1) != null) {
-        String numStr = match.group(1)!.replaceAll(',', '.');
-        double? value = double.tryParse(numStr);
-        if (value != null && value > 0) {
-          distances.add(value);
-        }
-      }
-    }
-    return distances;
-  }
-
+  /// Descarga las carreras desde la API REST de Supabase.
+  ///
+  /// Las credenciales se obtienen de Firebase Remote Config (con fallback
+  /// a los valores hardcodeados si Remote Config no está disponible).
   Future<List<Race>> downloadAndParseRaces() async {
+    // Obtener credenciales actualizadas de Remote Config
+    await _ensureRemoteConfig();
+
     try {
-      final response = await http.get(Uri.parse(_raceUrl));
+      final uri = Uri.parse('$_supabaseUrl/rest/v1/carreras?select=*');
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'apikey': _supabaseAnonKey,
+          'Authorization': 'Bearer $_supabaseAnonKey',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode != 200) {
         debugPrint(
-          "ERROR: Fallo al descargar HTML con código: ${response.statusCode}",
+          "ERROR: Fallo al obtener datos de Supabase: ${response.statusCode}",
         );
-        throw Exception('Error al descargar datos: ${response.statusCode}');
+        debugPrint("Cuerpo: ${response.body}");
+        throw Exception(
+          'Error al descargar datos de Supabase: ${response.statusCode}',
+        );
       }
 
-      String htmlContent = await _decodeHtml(response);
-      return _parseHtmlAndExtractRaces(htmlContent);
+      final List<dynamic> jsonData = json.decode(response.body);
+      debugPrint("✅ Recibidas ${jsonData.length} carreras de Supabase");
+
+      final races = jsonData
+          .map((row) => Race.fromSupabase(row as Map<String, dynamic>))
+          .where((race) => race.name.isNotEmpty)
+          .toList();
+
+      debugPrint("✅ Parseadas ${races.length} carreras válidas");
+      return races;
     } catch (e) {
-      debugPrint("ERROR: Excepción durante la descarga o decodificación: $e");
+      debugPrint("ERROR: Excepción al consultar Supabase: $e");
       rethrow;
     }
-  }
-
-  /// Extrae la zona/provincia desde las clases CSS del elemento <td> de provincia.
-  /// Ejemplo: class="col-provincia provincia-murcia" → "murcia"
-  String? _extractZoneFromProvinciaClass(html_dom.Element? td) {
-    if (td == null) return null;
-
-    final classes = td.className.toLowerCase().split(' ');
-    for (var cls in classes) {
-      if (cls.startsWith('provincia-')) {
-        final provincia = cls.replaceFirst('provincia-', '').trim();
-        // Mapear al nombre de zona interno de la app
-        return provinciasAZonas[provincia] ?? provincia;
-      }
-    }
-
-    // Fallback: usar el texto del td
-    final text = td.text.trim().toLowerCase();
-    return provinciasAZonas[text] ?? text;
-  }
-
-  List<Race> _parseHtmlAndExtractRaces(String htmlContent) {
-    final document = parse(htmlContent);
-    List<Race> parsedRaces = [];
-
-    // La nueva estructura tiene un <h2 id="mes" class="mes-titulo"> seguido de
-    // un <div class="table-container"><table class="agenda-table">...</table></div>
-    // para cada mes.
-
-    // Estrategia: buscar todos los h2 con clase "mes-titulo" y para cada uno,
-    // buscar la tabla siguiente.
-    final allElements = document.querySelectorAll(
-      'h2.mes-titulo, table.agenda-table',
-    );
-
-    String? currentMonth;
-
-    for (var element in allElements) {
-      if (element.localName == 'h2') {
-        // Extraer el mes desde el id del h2 (ej: id="marzo")
-        final monthId = element.id.toLowerCase();
-        if (meseses.contains(monthId)) {
-          currentMonth = monthId;
-          debugPrint("📅 Parseando mes: $currentMonth");
-        }
-        continue;
-      }
-
-      // Si es una tabla y tenemos un mes actual
-      if (element.localName == 'table' && currentMonth != null) {
-        final tbody = element.querySelector('tbody');
-        final rows =
-            tbody?.querySelectorAll('tr') ??
-            element.querySelectorAll('tbody > tr');
-
-        if (rows.isEmpty) {
-          // Si no hay tbody, buscar tr directamente
-          final directRows = element.querySelectorAll('tr');
-          for (var tr in directRows) {
-            // Saltar el thead row
-            if (tr.parent?.localName == 'thead') continue;
-            final race = _parseRow(tr, currentMonth);
-            if (race != null) parsedRaces.add(race);
-          }
-        } else {
-          for (var tr in rows) {
-            final race = _parseRow(tr, currentMonth);
-            if (race != null) parsedRaces.add(race);
-          }
-        }
-      }
-    }
-
-    // Si la estrategia por h2+table no funciona, intentar con data attributes
-    if (parsedRaces.isEmpty) {
-      debugPrint("⚠️ Fallback: buscando tablas sin h2.mes-titulo...");
-      parsedRaces = _parseWithFallback(document);
-    }
-
-    debugPrint("✅ Parseadas ${parsedRaces.length} carreras");
-    return parsedRaces;
-  }
-
-  Race? _parseRow(html_dom.Element tr, String currentMonth) {
-    // Extraer datos desde clases CSS específicas
-    final fechaTd = tr.querySelector('td.col-fecha');
-    final horaTd = tr.querySelector('td.col-hora');
-    final carreraTd = tr.querySelector('td.col-carrera');
-    final tipoTd = tr.querySelector('td.col-tipo');
-    final senderistaTd = tr.querySelector('td.col-senderista');
-    final localidadTd = tr.querySelector('td.col-localidad');
-    final provinciaTd = tr.querySelector('td.col-provincia');
-    final distanciaTd = tr.querySelector('td.col-distancia');
-    final precioTd = tr.querySelector('td.col-precio');
-
-    // Si no hay celda de carrera o está vacía, saltar esta fila
-    if (carreraTd == null) return null;
-
-    String name = carreraTd.text.trim();
-    if (name.isEmpty) return null;
-
-    // Obtener link de inscripción
-    String? registrationLink;
-    final linkElement = carreraTd.querySelector('a[href]');
-    if (linkElement != null) {
-      final href = linkElement.attributes['href'];
-      if (href != null &&
-          !href.startsWith('#') &&
-          (href.startsWith('http://') || href.startsWith('https://'))) {
-        registrationLink = href;
-      }
-    }
-
-    // Extraer los datos de cada celda
-    String? date = fechaTd?.text.trim();
-    String? hora = horaTd?.text.trim();
-    String? place = localidadTd?.text.trim();
-    String? zone = _extractZoneFromProvinciaClass(provinciaTd);
-
-    // Tipo: extraer desde el span.tag o el data-tipo del tr
-    String? type;
-    final tipoSpan = tipoTd?.querySelector('span.tag');
-    if (tipoSpan != null) {
-      type = tipoSpan.text.trim();
-    } else if (tipoTd != null) {
-      type = tipoTd.text.trim();
-    }
-    // Fallback al data-tipo del tr
-    if ((type == null || type.isEmpty) &&
-        tr.attributes.containsKey('data-tipo')) {
-      type = tr.attributes['data-tipo'];
-      if (type != null && type.isNotEmpty) {
-        type = type[0].toUpperCase() + type.substring(1);
-      }
-    }
-
-    // Senderista: si tiene el emoji 🥾
-    bool senderista = false;
-    if (senderistaTd != null) {
-      senderista = senderistaTd.text.contains('🥾');
-    }
-
-    // Distancias
-    List<double> distances = [];
-    if (distanciaTd != null) {
-      distances = _getDistances(distanciaTd.text);
-    }
-
-    // Precio
-    String? precio;
-    if (precioTd != null) {
-      precio = precioTd.text.trim();
-      if (precio.isEmpty) precio = null;
-    }
-
-    // Limpiar hora vacía
-    if (hora != null && hora.isEmpty) hora = null;
-
-    return Race(
-      month: currentMonth,
-      name: name,
-      date: date,
-      hora: hora,
-      place: place,
-      zone: zone,
-      type: type,
-      distances: distances,
-      registrationLink: registrationLink,
-      precio: precio,
-      senderista: senderista,
-    );
-  }
-
-  /// Fallback: parsear buscando todas las tablas con agenda-table
-  /// y determinando el mes desde el h2 más cercano anterior
-  List<Race> _parseWithFallback(html_dom.Document document) {
-    List<Race> races = [];
-
-    // Buscar todos los h2 que podrían ser headers de mes
-    final allH2 = document.querySelectorAll('h2');
-    final tables = document.querySelectorAll('table');
-
-    String currentMonth = 'enero'; // default
-
-    for (var h2 in allH2) {
-      final id = h2.id.toLowerCase();
-      if (meseses.contains(id)) {
-        currentMonth = id;
-      }
-
-      // Encontrar el texto del h2 para meses que no tienen id
-      final text = h2.text.toLowerCase();
-      for (var mes in meseses) {
-        if (text.contains(mes)) {
-          currentMonth = mes;
-          break;
-        }
-      }
-    }
-
-    // Parsear todas las tablas
-    for (var table in tables) {
-      final rows = table.querySelectorAll('tbody tr');
-      for (var tr in rows) {
-        // Intentar determinar el mes desde data-attributes o contexto
-        final race = _parseRow(tr, currentMonth);
-        if (race != null) races.add(race);
-      }
-    }
-
-    return races;
   }
 
   // Métodos de filtrado

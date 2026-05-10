@@ -1,5 +1,6 @@
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:in_app_review/in_app_review.dart';
 import '../models/race.dart';
 
 class UtilService {
@@ -17,22 +18,32 @@ class UtilService {
     }
   }
 
-  // Function to rate the app on Google Play
+  // Function to rate the app — intenta el diálogo nativo In-App Review primero,
+  // si no está disponible abre la página de Google Play.
   Future<void> rateApp({String? packageName}) async {
-    final String appPackage = packageName ?? 'YOUR_APP_PACKAGE_NAME';
+    final InAppReview inAppReview = InAppReview.instance;
+
+    try {
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+        return;
+      }
+    } catch (_) {
+      // Si falla, caer al fallback
+    }
+
+    // Fallback: abrir Google Play directamente
+    final String appPackage = packageName ?? 'com.correbirras.agenda';
     final Uri uri = Uri.parse('market://details?id=$appPackage');
 
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
-      // Fallback for when the Play Store app is not installed
       final Uri webUri = Uri.parse(
         'https://play.google.com/store/apps/details?id=$appPackage',
       );
       if (await canLaunchUrl(webUri)) {
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Could not launch $webUri';
       }
     }
   }
