@@ -43,6 +43,7 @@ out/
 *.jks
 /android/.gradle/
 /android/local.properties
+/android/key.properties
 
 # Web
 /web/build/

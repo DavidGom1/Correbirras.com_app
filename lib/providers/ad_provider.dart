@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-class AdService {
-  static final AdService _instance = AdService._internal();
-  factory AdService() => _instance;
-  AdService._internal();
-
-  static const String _bannerAdUnitId =
-      'ca-app-pub-2615746028420247/7362019261';
+class AdProvider extends ChangeNotifier {
+  static const String _bannerAdUnitId = 'ca-app-pub-2615746028420247/7362019261';
 
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
@@ -16,6 +11,7 @@ class AdService {
 
   static Future<void> initialize() async {
     await MobileAds.instance.initialize();
+    debugPrint("✅ AdMob SDK inicializado");
   }
 
   void loadBannerAd({VoidCallback? onLoaded}) {
@@ -25,17 +21,20 @@ class AdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (Ad ad) {
+          debugPrint("✅ Banner ad cargado");
           _isBannerAdLoaded = true;
           onLoaded?.call();
+          notifyListeners();
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          debugPrint("❌ Banner ad falló al cargar: $error");
           ad.dispose();
           _bannerAd = null;
           _isBannerAdLoaded = false;
+          notifyListeners();
         },
       ),
     );
-
     _bannerAd!.load();
   }
 
@@ -43,7 +42,6 @@ class AdService {
     if (_bannerAd == null || !_isBannerAdLoaded) {
       return const SizedBox.shrink();
     }
-
     return SizedBox(
       width: _bannerAd!.size.width.toDouble(),
       height: _bannerAd!.size.height.toDouble(),
@@ -51,9 +49,11 @@ class AdService {
     );
   }
 
+  @override
   void dispose() {
     _bannerAd?.dispose();
     _bannerAd = null;
     _isBannerAdLoaded = false;
+    super.dispose();
   }
 }

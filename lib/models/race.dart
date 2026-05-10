@@ -6,7 +6,7 @@ class Race {
   final String? place;
   final String? zone;
   final String? type;
-  final String? terrain; // Mantenido para compatibilidad, puede ser null
+  final String? terrain;
   final List<double> distances;
   final String? registrationLink;
   final String? precio;
@@ -40,9 +40,73 @@ class Race {
     this.urlRecorrido,
   });
 
-  /// Construye un Race desde una fila de la tabla 'carreras' de Supabase.
+  String get displayName {
+    if (name.isEmpty) return '';
+    return name[0].toUpperCase() + name.substring(1);
+  }
+
+  String get displayZone {
+    if (zone == null || zone!.isEmpty) return '';
+    return zone![0].toUpperCase() + zone!.substring(1).toLowerCase();
+  }
+
+  String get displayPlace {
+    if (place == null || place!.isEmpty) return '';
+    final clean = place!.split('(')[0].trim();
+    if (clean.isEmpty) return '';
+    return clean[0].toUpperCase() + clean.substring(1).toLowerCase();
+  }
+
+  String get displayMonth {
+    if (month.isEmpty) return '';
+    return month[0].toUpperCase() + month.substring(1).toLowerCase();
+  }
+
+  String formatDate() {
+    final parts = <String>[];
+    if (date != null && date!.isNotEmpty) parts.add(date!);
+    if (hora != null && hora!.isNotEmpty) parts.add('($hora)');
+    return parts.join(' ');
+  }
+
+  String get displayDistances {
+    if (distances.isEmpty) return 'No disponible';
+    final sorted = List<double>.from(distances)..sort();
+    return sorted.map((d) {
+      final s = d.toStringAsFixed(1);
+      final formatted = s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+      return '${formatted}K';
+    }).join(', ');
+  }
+
+  double? get parsedMinPrice {
+    if (precio == null || precio!.trim().isEmpty) return null;
+    final lower = precio!.toLowerCase().trim();
+    if (lower == 'gratis' || lower == 'gratuita' || lower == '0') return 0;
+    final match = RegExp(r'(\d+[.,]?\d*)').firstMatch(lower);
+    if (match != null) {
+      return double.tryParse(match.group(1)!.replaceAll(',', '.'));
+    }
+    return null;
+  }
+
+  static List<double> parseDistances(String? distanciaStr) {
+    if (distanciaStr == null || distanciaStr.isEmpty) return [];
+    final regExp = RegExp(r'(\d+[.,]?\d*)\s*[kK]', caseSensitive: false);
+    final distances = <double>[];
+    for (final match in regExp.allMatches(distanciaStr)) {
+      if (match.group(1) != null) {
+        final numStr = match.group(1)!.replaceAll(',', '.');
+        final value = double.tryParse(numStr);
+        if (value != null && value > 0) {
+          distances.add(value);
+        }
+      }
+    }
+    return distances;
+  }
+
   factory Race.fromSupabase(Map<String, dynamic> row) {
-    // Extraer mes desde la fecha ISO (ej: "2026-03-15" → "marzo")
     const mesesNombres = [
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
@@ -55,7 +119,6 @@ class Race {
       final parsed = DateTime.tryParse(fechaStr);
       if (parsed != null) {
         month = mesesNombres[parsed.month - 1];
-        // Formato dd-MM-yy consistente con lo que mostraba la web
         formattedDate =
             '${parsed.day.toString().padLeft(2, '0')}-'
             '${parsed.month.toString().padLeft(2, '0')}-'
@@ -63,38 +126,20 @@ class Race {
       }
     }
 
-    // Hora: viene como "09:30:00", recortar a "09:30"
     String? hora;
     final horaTime = row['hora_time'] as String?;
     if (horaTime != null && horaTime.length >= 5) {
       hora = horaTime.substring(0, 5);
     }
 
-    // Lugar: preferir localidad, fallback a ciudad
     final place = (row['localidad'] as String?)?.isNotEmpty == true
         ? row['localidad'] as String
         : row['ciudad'] as String?;
 
-    // Provincia → zona (normalizar a minúsculas)
     final provincia = (row['provincia'] as String?)?.toLowerCase();
 
-    // Distancias: parsear del string (ej: "10K / 21K", "5K", "10.5K")
-    List<double> distances = [];
-    final distanciaStr = row['distancia'] as String?;
-    if (distanciaStr != null && distanciaStr.isNotEmpty) {
-      final regExp = RegExp(r'(\d+[.,]?\d*)\s*[kK]', caseSensitive: false);
-      for (final match in regExp.allMatches(distanciaStr)) {
-        if (match.group(1) != null) {
-          final numStr = match.group(1)!.replaceAll(',', '.');
-          final value = double.tryParse(numStr);
-          if (value != null && value > 0) {
-            distances.add(value);
-          }
-        }
-      }
-    }
+    final distances = parseDistances(row['distancia'] as String?);
 
-    // Precio como texto legible
     final precioMin = (row['precio_min'] as num?)?.toDouble();
     final precioMax = (row['precio_max'] as num?)?.toDouble();
     String? precioText;
@@ -104,8 +149,7 @@ class Race {
       } else if (precioMin == precioMax) {
         precioText = '${precioMin?.toStringAsFixed(0)}€';
       } else if (precioMin != null && precioMax != null) {
-        precioText =
-            '${precioMin.toStringAsFixed(0)}-${precioMax.toStringAsFixed(0)}€';
+        precioText = '${precioMin.toStringAsFixed(0)}-${precioMax.toStringAsFixed(0)}€';
       } else {
         precioText = '${(precioMin ?? precioMax)?.toStringAsFixed(0)}€';
       }
@@ -137,7 +181,6 @@ class Race {
     return 'Race(month: $month, name: $name, date: $date, hora: $hora, place: $place, zone: $zone, type: $type, distances: $distances, precio: $precio, senderista: $senderista, link: $registrationLink)';
   }
 
-  // Método para convertir a JSON
   Map<String, dynamic> toJson() {
     return {
       'month': month,
@@ -162,7 +205,6 @@ class Race {
     };
   }
 
-  // Método para crear desde JSON (compatibilidad con favoritos Firestore/local)
   factory Race.fromJson(Map<String, dynamic> json) {
     return Race(
       month: json['month'] ?? '',
@@ -186,7 +228,6 @@ class Race {
     )..isFavorite = json['isFavorite'] ?? false;
   }
 
-  // Método para crear una copia con cambios
   Race copyWith({
     String? month,
     String? name,

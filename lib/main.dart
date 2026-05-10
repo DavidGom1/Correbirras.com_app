@@ -1,36 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:correbirras/screens/favorites_screen.dart';
-import 'package:upgrader/upgrader.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
+import 'package:upgrader/upgrader.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'dart:convert';
-
-// Imports refactorizados
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'models/race.dart';
-import 'services/auth_service.dart';
-import 'services/race_service.dart';
-import 'services/ad_service.dart';
+import 'providers/race_provider.dart';
+import 'providers/favorites_provider.dart';
+import 'providers/ad_provider.dart';
+import 'services/ad_service.dart' as ad_service_legacy;
 import 'services/util_service.dart';
 import 'utils/notification_utils.dart';
 import 'utils/upgrader_messages.dart';
 import 'widgets/race_card.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/auth_dialog.dart';
+import 'screens/favorites_screen.dart';
 
 void main() async {
-  // Aseguramos que Flutter esté completamente inicializado
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicialización de Firebase de forma segura
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -38,12 +31,10 @@ void main() async {
     debugPrint("✅ Firebase inicializado correctamente");
   } catch (e) {
     debugPrint("❌ Error al inicializar Firebase: $e");
-    // Continuar sin Firebase en caso de error
   }
 
-  // Inicializar AdMob
   try {
-    await AdService.initialize();
+    await ad_service_legacy.AdService.initialize();
   } catch (e) {
     debugPrint("❌ Error al inicializar AdMob: $e");
   }
@@ -56,15 +47,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => RaceProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
+        ChangeNotifierProvider(create: (_) => AdProvider()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
             title: 'Agenda de carreras Correbirras',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
+            themeMode: themeProvider.flutterThemeMode,
             home: const MyHomePage(title: 'Correbirras.com'),
           );
         },
@@ -83,120 +79,34 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isLoading = true;
-  List<Race> _allRaces = [];
-  List<Race> _filteredRaces = [];
-  List<String>?
-  _pendingFavoriteNames; // Para guardar favoritos cuando las carreras no están cargadas
-  String? _selectedMonth;
-  String? _selectedZone;
-  String? _selectedType;
-
-  double _filteredMinDistance = 0;
-  double _filteredMaxDistance = 0;
-  RangeValues _selectedDistanceRange = const RangeValues(0, 0);
-
-  double _filteredMinPrice = 0;
-  double _filteredMaxPrice = 0;
-  RangeValues _selectedPriceRange = const RangeValues(0, 0);
-
-  /// Parsea el campo precio (ej: "10-13", "5", "Gratis", "3-5") y devuelve
-  /// el valor mínimo numérico, o null si no es parseable.
-  double? _parseMinPrice(String? precio) {
-    if (precio == null || precio.trim().isEmpty) return null;
-    final lower = precio.toLowerCase().trim();
-    if (lower == 'gratis' || lower == 'gratuita' || lower == '0') return 0;
-    // Intentar extraer el primer número (ej: "10-13" -> 10, "5" -> 5)
-    final match = RegExp(r'(\d+[.,]?\d*)').firstMatch(lower);
-    if (match != null) {
-      return double.tryParse(match.group(1)!.replaceAll(',', '.'));
-    }
-    return null;
-  }
-
   bool _isWebViewVisible = false;
   bool _isWebViewLoading = false;
   late final WebViewController _controller;
+  String? _webViewError;
 
-  // Servicios refactorizados
-  final AuthService _authService = AuthService();
-  final RaceService _raceService = RaceService();
-  final AdService _adService = AdService();
   final UtilService _utilService = UtilService();
-
-  // Genera un ID seguro para Firestore a partir del nombre de la carrera
-  // Evita caracteres no permitidos como '/'.
-  String _favoriteDocId(String raceName) {
-    try {
-      // Base64 URL-safe del nombre para evitar caracteres prohibidos
-      return base64Url.encode(utf8.encode(raceName));
-    } catch (_) {
-      // Fallback simple por si hay caracteres no codificables
-      return raceName.replaceAll('/', '_');
-    }
-  }
-
-  void _configureSystemUI() {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
-        systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: isDark
-            ? ControlColors.darkPrimary
-            : ControlColors.lightPrimary,
-        systemNavigationBarContrastEnforced: false,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _adService.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
     super.initState();
 
-    // Cargar banner de AdMob
-    _adService.loadBannerAd(onLoaded: () {
-      if (mounted) setState(() {});
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final raceProvider = context.read<RaceProvider>();
+      raceProvider.loadRaces();
 
-    // Escuchar cambios de autenticación de Firebase de forma segura
-    try {
-      _authService.authStateChanges.listen((User? user) {
-        if (mounted) {
-          setState(() {
-            // Estado manejado por AuthService
-          });
+      final adProvider = context.read<AdProvider>();
+      adProvider.loadBannerAd(onLoaded: () {
+        if (mounted) setState(() {});
+      });
 
-          debugPrint('Usuario autenticado: ${user?.email}');
-          debugPrint('Nombre: ${user?.displayName}');
-          debugPrint('Foto: ${user?.photoURL}');
-
-          if (user != null) {
-            _loadFavoritesFromFirestore();
-          }
+      final favoritesProvider = context.read<FavoritesProvider>();
+      favoritesProvider.authStateChanges.listen((user) {
+        if (mounted && user != null) {
+          _syncFavorites();
         }
       });
-      debugPrint("✅ Listener de Firebase Auth configurado");
-    } catch (e) {
-      debugPrint("❌ Error al configurar Firebase Auth: $e");
-    }
+    });
 
-    _downloadHtmlAndParse();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color.fromARGB(0, 0, 0, 0))
@@ -205,12 +115,20 @@ class _MyHomePageState extends State<MyHomePage> {
           onPageStarted: (String url) {
             setState(() {
               _isWebViewLoading = true;
+              _webViewError = null;
             });
           },
           onPageFinished: (String url) {
             setState(() {
               _isWebViewLoading = false;
             });
+          },
+          onWebResourceError: (WebResourceError error) {
+            setState(() {
+              _isWebViewLoading = false;
+              _webViewError = 'Error al cargar la página: ${error.description}';
+            });
+            debugPrint('❌ WebView error: ${error.description}');
           },
           onNavigationRequest: (NavigationRequest request) {
             if (_utilService.isPdfUrl(request.url)) {
@@ -238,421 +156,74 @@ class _MyHomePageState extends State<MyHomePage> {
     _configureSystemUI();
   }
 
-  // Métodos de autenticación refactorizados
-  Future<void> _logout() async {
-    try {
-      await _authService.logout();
-    } catch (e) {
-      debugPrint('Error al cerrar sesión: $e');
-    }
+  Future<void> _syncFavorites() async {
+    final favoritesProvider = context.read<FavoritesProvider>();
+    final raceProvider = context.read<RaceProvider>();
+
+    await favoritesProvider.loadFavorites();
+    await favoritesProvider.mergeLocalToCloud();
+    await raceProvider.loadFavoritesIntoRaces(favoritesProvider.favoriteNames);
   }
 
-  // Cargar favoritos desde Firestore
-  Future<void> _loadFavoritesFromFirestore() async {
-    if (!_authService.isLoggedIn || _authService.currentUser == null) return;
+  void _configureSystemUI() {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
-    try {
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      final userDoc = firestore
-          .collection('users')
-          .doc(_authService.currentUser!.uid);
-      final favoritesSnapshot = await userDoc.collection('favorites').get();
-
-      final favoriteNames = favoritesSnapshot.docs
-          .map((doc) => doc.data()['raceName'] as String)
-          .toList();
-
-      // Si las carreras ya están cargadas, marcarlas como favoritas
-      if (_allRaces.isNotEmpty) {
-        for (var race in _allRaces) {
-          race.isFavorite = favoriteNames.contains(race.name);
-        }
-        if (mounted) {
-          setState(() {});
-        }
-      } else {
-        // Si las carreras no están cargadas aún, guardar los favoritos para aplicarlos después
-        _pendingFavoriteNames = favoriteNames;
-      }
-
-      debugPrint("Favoritos cargados desde Firestore: $favoriteNames");
-    } catch (e) {
-      debugPrint("Error al cargar favoritos desde Firestore: $e");
-    }
-  }
-
-  Future<void> _toggleFavorite(Race race) async {
-    setState(() {
-      race.isFavorite = !race.isFavorite;
-    });
-
-    if (_authService.isLoggedIn && _authService.currentUser != null) {
-      try {
-        final FirebaseFirestore firestore = FirebaseFirestore.instance;
-        final userDoc = firestore
-            .collection('users')
-            .doc(_authService.currentUser!.uid);
-
-        if (race.isFavorite) {
-          await userDoc
-              .collection('favorites')
-              .doc(_favoriteDocId(race.name))
-              .set({
-                'raceName': race.name,
-                'month': race.month,
-                'zone': race.zone,
-                'type': race.type,
-                'terrain': race.terrain,
-                'distances': race.distances,
-                'registrationLink': race.registrationLink,
-                'date': race.date,
-                'hora': race.hora,
-                'precio': race.precio,
-                'senderista': race.senderista,
-                'addedAt': FieldValue.serverTimestamp(),
-              });
-          if (mounted) {
-            NotificationUtils.showSuccess(
-              context,
-              'Carrera añadida a favoritos',
-              title: '¡Éxito!',
-            );
-          }
-        } else {
-          await userDoc
-              .collection('favorites')
-              .doc(_favoriteDocId(race.name))
-              .delete();
-          if (mounted) {
-            NotificationUtils.showInfo(
-              context,
-              'Carrera eliminada de favoritos',
-              title: 'Información',
-            );
-          }
-        }
-        debugPrint(
-          "Favoritos sincronizados con Firestore para usuario: ${_authService.currentUser!.email}",
-        );
-      } catch (e) {
-        debugPrint("Error al sincronizar favoritos con Firestore: $e");
-        if (mounted) {
-          setState(() {
-            race.isFavorite = !race.isFavorite;
-          });
-          NotificationUtils.showError(
-            context,
-            'Error al sincronizar con el servidor',
-            title: 'Error',
-          );
-        }
-      }
-    } else {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final List<String> favoriteRaces =
-          prefs.getStringList('favoriteRaces') ?? [];
-
-      if (race.isFavorite) {
-        if (!favoriteRaces.contains(race.name)) {
-          favoriteRaces.add(race.name);
-        }
-        if (mounted) {
-          NotificationUtils.showSuccess(
-            context,
-            'Carrera añadida a favoritos',
-            title: '¡Éxito!',
-          );
-        }
-      } else {
-        favoriteRaces.remove(race.name);
-        if (mounted) {
-          NotificationUtils.showSuccess(
-            context,
-            'Carrera eliminada de favoritos',
-            title: 'Información',
-          );
-        }
-      }
-
-      await prefs.setStringList('favoriteRaces', favoriteRaces);
-      debugPrint("Favoritos guardados localmente: $favoriteRaces");
-    }
-  }
-
-  // Método para mostrar el diálogo de autenticación
-  Future<void> _showAuthDialog() async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return const AuthDialog();
-      },
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: isDark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: isDark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: isDark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        systemNavigationBarContrastEnforced: false,
+      ),
     );
   }
 
-  // Métodos de utilidades refactorizados
-  Future<void> _launchURL(String url) async {
-    await _utilService.launchURL(url);
-  }
+  Future<void> _handleToggleFavorite(Race race) async {
+    final favoritesProvider = context.read<FavoritesProvider>();
+    final raceProvider = context.read<RaceProvider>();
 
-  // Métodos para el manejo de carreras
-  Future<void> _downloadHtmlAndParse() async {
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-      });
-    }
+    final wasFavorite = race.isFavorite;
+    raceProvider.setFavorite(race, !wasFavorite);
 
-    try {
-      final races = await _raceService.downloadAndParseRaces();
-      await _loadFavorites(races);
+    final success = await favoritesProvider.toggleFavorite(race);
 
+    if (!success) {
+      raceProvider.setFavorite(race, wasFavorite);
       if (mounted) {
-        setState(() {
-          _allRaces = races;
-          _applyFilters(basicFilterChanged: true);
-        });
-      }
-    } catch (e) {
-      debugPrint("ERROR: Excepción durante la descarga: $e");
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Método para refrescar solo los favoritos del usuario (pull-to-refresh)
-  Future<void> _refreshUserFavorites() async {
-    if (_authService.isLoggedIn) {
-      // Sincronizar favoritos desde Firestore para usuarios autenticados
-      await _loadFavoritesFromFirestore();
-    } else {
-      // Para usuarios no autenticados, cargar favoritos locales
-      await _loadFavoritesFromLocal(_allRaces);
-    }
-
-    // Aplicar filtros para actualizar la vista
-    _applyFilters();
-  }
-
-  Future<void> _loadFavorites(List<Race> races) async {
-    if (_authService.isLoggedIn) {
-      await _loadFavoritesFromFirestore();
-      // Si hay favoritos pendientes, aplicarlos ahora que las carreras están cargadas
-      if (_pendingFavoriteNames != null) {
-        for (var race in races) {
-          race.isFavorite = _pendingFavoriteNames!.contains(race.name);
-        }
-        _pendingFavoriteNames = null; // Limpiar los favoritos pendientes
-        debugPrint("Favoritos pendientes aplicados a las carreras cargadas");
-      }
-    } else {
-      await _loadFavoritesFromLocal(races);
-    }
-  }
-
-  Future<void> _loadFavoritesFromLocal(List<Race> races) async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final List<String> favoriteRaces =
-          prefs.getStringList('favoriteRaces') ?? [];
-
-      for (var race in races) {
-        race.isFavorite = favoriteRaces.contains(race.name);
-      }
-
-      debugPrint("Favoritos cargados localmente: $favoriteRaces");
-    } catch (e) {
-      debugPrint("Error al cargar favoritos locales: $e");
-    }
-  }
-
-  void _applyFilters({
-    bool basicFilterChanged = false,
-    bool manualDistanceChange = false,
-    bool manualPriceChange = false,
-  }) {
-    // Primero filtrar por criterios básicos (mes, zona, tipo)
-    List<Race> basicFilteredRaces = _allRaces.where((race) {
-      final matchMonth = _selectedMonth == null || race.month == _selectedMonth;
-      final matchZone = _selectedZone == null || race.zone == _selectedZone;
-      final matchType = _selectedType == null || race.type == _selectedType;
-      return matchMonth && matchZone && matchType;
-    }).toList();
-
-    // Calcular el nuevo rango de distancias basado en las carreras filtradas por criterios básicos
-    double newMin = 0;
-    double newMax = 0;
-    final filteredDistances = basicFilteredRaces
-        .expand((race) => race.distances)
-        .toList();
-    if (filteredDistances.isNotEmpty) {
-      newMin = filteredDistances.reduce((a, b) => a < b ? a : b).toDouble();
-      newMax = filteredDistances.reduce((a, b) => a > b ? a : b).toDouble();
-    }
-
-    // Calcular el rango de precios
-    double newPriceMin = 0;
-    double newPriceMax = 0;
-    final filteredPrices = basicFilteredRaces
-        .map((race) => _parseMinPrice(race.precio))
-        .whereType<double>()
-        .toList();
-    if (filteredPrices.isNotEmpty) {
-      newPriceMin = filteredPrices.reduce((a, b) => a < b ? a : b);
-      newPriceMax = filteredPrices.reduce((a, b) => a > b ? a : b);
-    }
-
-    // Determinar el rango de distancia a usar
-    RangeValues newDistanceRange = _selectedDistanceRange;
-    if (basicFilterChanged) {
-      newDistanceRange = RangeValues(newMin, newMax);
-    } else if (!manualDistanceChange) {
-      double adjustedStart = _selectedDistanceRange.start;
-      double adjustedEnd = _selectedDistanceRange.end;
-
-      if (newMin <= newMax) {
-        if (newMin < _selectedDistanceRange.start) {
-          adjustedStart = newMin;
-        } else if (adjustedStart < newMin) {
-          adjustedStart = newMin;
-        }
-
-        if (newMax > _selectedDistanceRange.end) {
-          adjustedEnd = newMax;
-        } else if (adjustedEnd > newMax) {
-          adjustedEnd = newMax;
-        }
-
-        if (adjustedStart > newMax) adjustedStart = newMax;
-        if (adjustedEnd < newMin) adjustedEnd = newMin;
-        if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-
-        newDistanceRange = RangeValues(adjustedStart, adjustedEnd);
-      } else {
-        newDistanceRange = RangeValues(0, 0);
-      }
-    } else {
-      double adjustedStart = _selectedDistanceRange.start;
-      double adjustedEnd = _selectedDistanceRange.end;
-
-      if (newMin <= newMax) {
-        if (adjustedStart < newMin) adjustedStart = newMin;
-        if (adjustedStart > newMax) adjustedStart = newMax;
-        if (adjustedEnd < newMin) adjustedEnd = newMin;
-        if (adjustedEnd > newMax) adjustedEnd = newMax;
-        if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-
-        newDistanceRange = RangeValues(adjustedStart, adjustedEnd);
-      }
-    }
-
-    // Determinar el rango de precio a usar
-    RangeValues newPriceRange = _selectedPriceRange;
-    if (basicFilterChanged) {
-      newPriceRange = RangeValues(newPriceMin, newPriceMax);
-    } else if (!manualPriceChange) {
-      double adjStart = _selectedPriceRange.start;
-      double adjEnd = _selectedPriceRange.end;
-      if (newPriceMin <= newPriceMax) {
-        if (newPriceMin < adjStart) adjStart = newPriceMin;
-        if (adjStart < newPriceMin) adjStart = newPriceMin;
-        if (newPriceMax > adjEnd) adjEnd = newPriceMax;
-        if (adjEnd > newPriceMax) adjEnd = newPriceMax;
-        if (adjStart > adjEnd) adjStart = adjEnd;
-        newPriceRange = RangeValues(adjStart, adjEnd);
-      } else {
-        newPriceRange = RangeValues(0, 0);
-      }
-    } else {
-      double adjStart = _selectedPriceRange.start;
-      double adjEnd = _selectedPriceRange.end;
-      if (newPriceMin <= newPriceMax) {
-        if (adjStart < newPriceMin) adjStart = newPriceMin;
-        if (adjStart > newPriceMax) adjStart = newPriceMax;
-        if (adjEnd < newPriceMin) adjEnd = newPriceMin;
-        if (adjEnd > newPriceMax) adjEnd = newPriceMax;
-        if (adjStart > adjEnd) adjStart = adjEnd;
-        newPriceRange = RangeValues(adjStart, adjEnd);
-      }
-    }
-
-    // Aplicar el filtro de distancia sobre las carreras ya filtradas por criterios básicos
-    List<Race> finalFilteredRaces = List.from(basicFilteredRaces);
-    if (newMax > 0 &&
-        (newDistanceRange.start > newMin || newDistanceRange.end < newMax)) {
-      finalFilteredRaces = finalFilteredRaces.where((race) {
-        if (race.distances.isEmpty) {
-          return false;
-        }
-        return race.distances.any(
-          (d) => d >= newDistanceRange.start && d <= newDistanceRange.end,
+        NotificationUtils.showError(
+          context,
+          'Error al sincronizar con el servidor',
+          title: 'Error',
         );
-      }).toList();
-    }
-
-    // Aplicar el filtro de precio
-    if (newPriceMax > 0 &&
-        (newPriceRange.start > newPriceMin ||
-            newPriceRange.end < newPriceMax)) {
-      finalFilteredRaces = finalFilteredRaces.where((race) {
-        final price = _parseMinPrice(race.precio);
-        if (price == null) return true; // Mostrar carreras sin precio
-        return price >= newPriceRange.start && price <= newPriceRange.end;
-      }).toList();
-    }
-
-    // Actualizar el estado
-    if (mounted) {
-      setState(() {
-        _filteredMinDistance = newMin;
-        _filteredMaxDistance = newMax;
-        _filteredMinPrice = newPriceMin;
-        _filteredMaxPrice = newPriceMax;
-
-        // Asegurar que el rango de distancia seleccionado esté dentro de los límites válidos
-        double finalMin = newMin;
-        double finalMax = newMax > newMin ? newMax : newMin + 1;
-
-        double adjustedStart = newDistanceRange.start;
-        double adjustedEnd = newDistanceRange.end;
-
-        if (adjustedStart < finalMin) adjustedStart = finalMin;
-        if (adjustedStart > finalMax) adjustedStart = finalMax;
-        if (adjustedEnd < finalMin) adjustedEnd = finalMin;
-        if (adjustedEnd > finalMax) adjustedEnd = finalMax;
-        if (adjustedStart > adjustedEnd) adjustedStart = adjustedEnd;
-
-        _selectedDistanceRange = RangeValues(adjustedStart, adjustedEnd);
-
-        // Asegurar que el rango de precio esté dentro de los límites válidos
-        double finalPriceMin = newPriceMin;
-        double finalPriceMax = newPriceMax > newPriceMin
-            ? newPriceMax
-            : newPriceMin + 1;
-
-        double adjPriceStart = newPriceRange.start;
-        double adjPriceEnd = newPriceRange.end;
-
-        if (adjPriceStart < finalPriceMin) adjPriceStart = finalPriceMin;
-        if (adjPriceStart > finalPriceMax) adjPriceStart = finalPriceMax;
-        if (adjPriceEnd < finalPriceMin) adjPriceEnd = finalPriceMin;
-        if (adjPriceEnd > finalPriceMax) adjPriceEnd = finalPriceMax;
-        if (adjPriceStart > adjPriceEnd) adjPriceStart = adjPriceEnd;
-
-        _selectedPriceRange = RangeValues(adjPriceStart, adjPriceEnd);
-        _filteredRaces = finalFilteredRaces;
-      });
+      }
+    } else if (mounted) {
+      NotificationUtils.showSuccess(
+        context,
+        wasFavorite ? 'Carrera eliminada de favoritos' : 'Carrera añadida a favoritos',
+        title: wasFavorite ? 'Información' : '¡Éxito!',
+      );
     }
   }
 
   void _showRaceInWebView(String url) {
+    if (!_utilService.isValidUrl(url)) {
+      debugPrint('URL inválida: $url');
+      return;
+    }
     _controller.loadRequest(Uri.parse(url));
     setState(() {
       _isWebViewVisible = true;
+      _webViewError = null;
     });
   }
 
@@ -663,619 +234,538 @@ class _MyHomePageState extends State<MyHomePage> {
   void _hideWebView() {
     setState(() {
       _isWebViewVisible = false;
+      _webViewError = null;
     });
   }
 
-  void _resetAllFilters() {
-    setState(() {
-      _selectedMonth = null;
-      _selectedZone = null;
-      _selectedType = null;
-      _selectedDistanceRange = RangeValues(
-        _filteredMinDistance,
-        _filteredMaxDistance,
-      );
-      _selectedPriceRange = RangeValues(_filteredMinPrice, _filteredMaxPrice);
-    });
-    _applyFilters(basicFilterChanged: true);
+  Future<void> _refreshData() async {
+    final raceProvider = context.read<RaceProvider>();
+    final favoritesProvider = context.read<FavoritesProvider>();
+
+    await raceProvider.loadRaces();
+    await favoritesProvider.loadFavorites();
+    await raceProvider.loadFavoritesIntoRaces(favoritesProvider.favoriteNames);
+  }
+
+  void _showAuthDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return const AuthDialog();
+      },
+    );
+  }
+
+  Future<void> _launchURL(String url) async {
+    await _utilService.launchURL(url);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        // Configurar la UI del sistema cada vez que el tema cambie
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _configureSystemUI();
-        });
+    final raceProvider = context.watch<RaceProvider>();
+    final favoritesProvider = context.read<FavoritesProvider>();
+    final adProvider = context.watch<AdProvider>();
 
-        final filterOptions = _raceService.getFilterOptions(_allRaces);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _configureSystemUI();
+    });
 
-        final TextStyle drawersTextStyle = TextStyle(
-          color: AppTheme.getPrimaryTextColor(context),
-          fontSize: 25,
-          fontWeight: FontWeight.bold,
-        );
-
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
-            statusBarColor: isDark
-                ? ControlColors.darkPrimary
-                : ControlColors.lightPrimary,
-            statusBarIconBrightness: Brightness.light,
-            statusBarBrightness: Brightness.dark,
-            systemNavigationBarColor: isDark
-                ? ControlColors.darkPrimary
-                : ControlColors.lightPrimary,
-            systemNavigationBarIconBrightness: Brightness.light,
-            systemNavigationBarDividerColor: isDark
-                ? ControlColors.darkPrimary
-                : ControlColors.lightPrimary,
-            systemNavigationBarContrastEnforced: false,
-          ),
-          child: Container(
-            color: AppTheme.getPrimaryControlColor(context),
-            child: SafeArea(
-              child: PopScope<Object?>(
-                canPop: !_isWebViewVisible,
-                onPopInvokedWithResult: (bool didPop, Object? result) async {
-                  if (!didPop && _isWebViewVisible) {
-                    _hideWebView();
-                  }
-                },
-                child: UpgradeAlert(
-                  upgrader: Upgrader(
-                    durationUntilAlertAgain: Duration(days: 3),
-                    debugDisplayAlways: true,
-                    countryCode: 'ES',
-                    debugLogging: true,
-                    messages: CorrebirrasUpgraderMessages(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Theme.of(context).brightness == Brightness.dark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Theme.of(context).brightness == Brightness.dark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Theme.of(context).brightness == Brightness.dark
+            ? ControlColors.darkPrimary
+            : ControlColors.lightPrimary,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: Container(
+        color: AppTheme.getPrimaryControlColor(context),
+        child: SafeArea(
+          child: PopScope<Object?>(
+            canPop: !_isWebViewVisible,
+            onPopInvokedWithResult: (bool didPop, Object? result) async {
+              if (!didPop && _isWebViewVisible) {
+                _hideWebView();
+              }
+            },
+            child: UpgradeAlert(
+              upgrader: Upgrader(
+                durationUntilAlertAgain: const Duration(days: 3),
+                countryCode: 'ES',
+                messages: CorrebirrasUpgraderMessages(),
+              ),
+              child: Scaffold(
+                appBar: AppBar(
+                  elevation: 0,
+                  shadowColor: const Color.fromARGB(186, 0, 0, 0),
+                  backgroundColor: AppTheme.getPrimaryControlColor(context),
+                  foregroundColor: AppTheme.getPrimaryTextColor(context),
+                  leading: Builder(
+                    builder: (BuildContext innerContext) {
+                      return IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () =>
+                            Scaffold.of(innerContext).openDrawer(),
+                      );
+                    },
                   ),
-                  child: Scaffold(
-                    appBar: AppBar(
-                      elevation: 0,
-                      shadowColor: const Color.fromARGB(186, 0, 0, 0),
-                      backgroundColor: AppTheme.getPrimaryControlColor(context),
-                      foregroundColor: AppTheme.getPrimaryTextColor(context),
-                      leading: Builder(
+                  title: Image.asset(
+                    'assets/images/Correbirras_00.png',
+                    fit: BoxFit.fitHeight,
+                    height: 35,
+                  ),
+                  centerTitle: true,
+                  actions: [
+                    if (_isWebViewVisible)
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _hideWebView,
+                      )
+                    else
+                      Builder(
                         builder: (BuildContext innerContext) {
                           return IconButton(
-                            icon: const Icon(Icons.menu),
+                            icon: const Icon(Icons.filter_alt_outlined),
                             onPressed: () =>
-                                Scaffold.of(innerContext).openDrawer(),
+                                Scaffold.of(innerContext).openEndDrawer(),
                           );
                         },
                       ),
-                      title: Image.asset(
-                        'assets/images/Correbirras_00.png',
-                        fit: BoxFit.fitHeight,
-                        height: 35,
+                  ],
+                ),
+                drawer: AppDrawer(
+                  isLoggedIn: favoritesProvider.isLoggedIn,
+                  userDisplayName: favoritesProvider.userDisplayName,
+                  userEmail: favoritesProvider.userEmail,
+                  userPhotoURL: favoritesProvider.userPhotoURL,
+                  onAuthTap: _showAuthDialog,
+                  onLogout: () async {
+                    try {
+                      await favoritesProvider.logout();
+                      if (!mounted) return;
+                      await _refreshData();
+                      if (!context.mounted) return;
+                      NotificationUtils.showSuccess(
+                        context,
+                        'Tu sesión se ha cerrado correctamente',
+                        title: 'Sesión Cerrada',
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      NotificationUtils.showError(
+                        context,
+                        'No se pudo cerrar la sesión',
+                        title: 'Error',
+                      );
+                    }
+                  },
+                  onFavoritesTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FavoritesScreen(
+                          allRaces: raceProvider.allRaces,
+                          toggleFavorite: _handleToggleFavorite,
+                          showRaceInWebView: _showRaceInWebView,
+                          handleShareRace: _handleShareRace,
+                        ),
                       ),
-                      centerTitle: true,
-                      actions: [
-                        if (_isWebViewVisible)
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: _hideWebView,
-                          )
-                        else
-                          Builder(
-                            builder: (BuildContext innerContext) {
-                              return IconButton(
-                                icon: const Icon(Icons.filter_alt_outlined),
-                                onPressed: () =>
-                                    Scaffold.of(innerContext).openEndDrawer(),
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                    drawer: AppDrawer(
-                      isLoggedIn: _authService.isLoggedIn,
-                      userDisplayName: _authService.userDisplayName,
-                      userEmail: _authService.userEmail,
-                      userPhotoURL: _authService.userPhotoURL,
-                      onAuthTap: _showAuthDialog,
-                      onLogout: _logout,
-                      onFavoritesTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FavoritesScreen(
-                              allRaces: _allRaces,
-                              toggleFavorite: _toggleFavorite,
-                              showRaceInWebView: _showRaceInWebView,
-                              handleShareRace: _handleShareRace,
+                    );
+                  },
+                  allRaces: raceProvider.allRaces,
+                  toggleFavorite: _handleToggleFavorite,
+                  showRaceInWebView: _showRaceInWebView,
+                  handleShareRace: _handleShareRace,
+                ),
+                endDrawer: _isWebViewVisible
+                    ? null
+                    : _buildFilterDrawer(context, raceProvider),
+                body: Column(
+                  children: [
+                    Expanded(
+                      child: raceProvider.isLoading && raceProvider.allRaces.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AppTheme.getSpinKitPumpingHeart(context),
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'Cargando carreras...',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        );
-                      },
-                      // Pasar los parámetros necesarios para la animación
-                      allRaces: _allRaces,
-                      toggleFavorite: _toggleFavorite,
-                      showRaceInWebView: _showRaceInWebView,
-                      handleShareRace: _handleShareRace,
-                    ),
-                    endDrawer: _isWebViewVisible
-                        ? null
-                        : Drawer(
-                            child: Material(
-                              color: AppTheme.getSurfaceColor(context),
-                              child: ListView(
-                                padding: EdgeInsets.zero,
-                                children: <Widget>[
-                                  Container(
-                                    padding: EdgeInsets.symmetric(vertical: 20),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.getDrawerHeaderColor(
-                                        context,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Filtros',
-                                        style: drawersTextStyle,
-                                      ),
-                                    ),
+                          )
+                        : raceProvider.error != null && raceProvider.allRaces.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    raceProvider.error!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 16),
                                   ),
-                                  SizedBox(height: 20),
-                                  ListTile(
-                                    title: DropdownButton<String>(
-                                      isExpanded: true,
-                                      hint: const Text("Mes"),
-                                      value: _selectedMonth,
-                                      onChanged: (v) {
-                                        setState(() {
-                                          _selectedMonth = v;
-                                        });
-                                        _applyFilters(); // Sin basicFilterChanged para que se actualice dinámicamente
-                                      },
-                                      items: filterOptions.months.map((m) {
-                                        return DropdownMenuItem(
-                                          value: m,
-                                          child: Text(
-                                            m[0].toUpperCase() + m.substring(1),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: DropdownButton<String>(
-                                      isExpanded: true,
-                                      hint: const Text("Zona"),
-                                      value: _selectedZone,
-                                      onChanged: (v) {
-                                        setState(() {
-                                          _selectedZone = v;
-                                        });
-                                        _applyFilters(); // Sin basicFilterChanged para que se actualice dinámicamente
-                                      },
-                                      items: filterOptions.zones.map((z) {
-                                        return DropdownMenuItem(
-                                          value: z,
-                                          child: Text(
-                                            z[0].toUpperCase() + z.substring(1),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: DropdownButton<String>(
-                                      isExpanded: true,
-                                      hint: const Text("Tipo"),
-                                      value: _selectedType,
-                                      onChanged: (v) {
-                                        setState(() {
-                                          _selectedType = v;
-                                        });
-                                        _applyFilters(); // Sin basicFilterChanged para que se actualice dinámicamente
-                                      },
-                                      items: filterOptions.types.map((t) {
-                                        return DropdownMenuItem(
-                                          value: t,
-                                          child: Text(t),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Precio '),
-                                        RangeSlider(
-                                          values: _selectedPriceRange,
-                                          min: _filteredMinPrice,
-                                          max:
-                                              _filteredMaxPrice >
-                                                  _filteredMinPrice
-                                              ? _filteredMaxPrice
-                                              : _filteredMinPrice + 1,
-                                          divisions:
-                                              (_filteredMaxPrice >
-                                                  _filteredMinPrice)
-                                              ? ((_filteredMaxPrice -
-                                                            _filteredMinPrice) /
-                                                        1)
-                                                    .round()
-                                                    .clamp(1, 200)
-                                              : null,
-                                          labels: RangeLabels(
-                                            '${_selectedPriceRange.start.round()}€',
-                                            '${_selectedPriceRange.end.round()}€',
-                                          ),
-                                          activeColor:
-                                              AppTheme.getSliderActiveColor(
-                                                context,
-                                              ),
-                                          inactiveColor:
-                                              AppTheme.getSliderInactiveColor(
-                                                context,
-                                              ),
-                                          onChanged: (values) => setState(
-                                            () => _selectedPriceRange = values,
-                                          ),
-                                          onChangeEnd: (values) =>
-                                              _applyFilters(
-                                                basicFilterChanged: false,
-                                                manualPriceChange: true,
-                                              ),
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.only(bottom: 10),
-                                          child: Center(
-                                            child: Text(
-                                              "${_selectedPriceRange.start.round()}€ - ${_selectedPriceRange.end.round()}€",
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Distancia '),
-                                        RangeSlider(
-                                          values: _selectedDistanceRange,
-                                          min: _filteredMinDistance,
-                                          max:
-                                              _filteredMaxDistance >
-                                                  _filteredMinDistance
-                                              ? _filteredMaxDistance
-                                              : _filteredMinDistance + 1,
-                                          divisions:
-                                              (_filteredMaxDistance >
-                                                  _filteredMinDistance)
-                                              ? ((_filteredMaxDistance -
-                                                            _filteredMinDistance) /
-                                                        1)
-                                                    .round()
-                                                    .clamp(1, 1000)
-                                              : null,
-                                          labels: RangeLabels(
-                                            '${_selectedDistanceRange.start.round().toString()}${'K'}',
-                                            '${_selectedDistanceRange.end.round().toString()}${'K'}',
-                                          ),
-                                          activeColor:
-                                              AppTheme.getSliderActiveColor(
-                                                context,
-                                              ),
-                                          inactiveColor:
-                                              AppTheme.getSliderInactiveColor(
-                                                context,
-                                              ),
-                                          onChanged: (values) => setState(
-                                            () =>
-                                                _selectedDistanceRange = values,
-                                          ),
-                                          onChangeEnd: (values) =>
-                                              _applyFilters(
-                                                basicFilterChanged: false,
-                                                manualDistanceChange: true,
-                                              ),
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.only(bottom: 10),
-                                          child: Center(
-                                            child: Text(
-                                              "${_selectedDistanceRange.start.round()}K - ${_selectedDistanceRange.end.round()}K",
-                                            ),
-                                          ),
-                                        ),
-                                        Align(
-                                          alignment: Alignment.center,
-                                          child: TextButton(
-                                            style: ButtonStyle(
-                                              backgroundColor:
-                                                  WidgetStateProperty.resolveWith<
-                                                    Color?
-                                                  >((Set<WidgetState> states) {
-                                                    if (states.contains(
-                                                      WidgetState.pressed,
-                                                    )) {
-                                                      return Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                          .withValues(
-                                                            alpha: 0.8,
-                                                          );
-                                                    }
-                                                    if (states.contains(
-                                                      WidgetState.hovered,
-                                                    )) {
-                                                      return Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                          .withValues(
-                                                            alpha: 0.9,
-                                                          );
-                                                    }
-                                                    return AppTheme.getSliderActiveColor(
-                                                      context,
-                                                    );
-                                                  }),
-                                              foregroundColor:
-                                                  WidgetStateProperty.resolveWith<
-                                                    Color?
-                                                  >((Set<WidgetState> states) {
-                                                    return AppTheme.getPrimaryTextColor(
-                                                      context,
-                                                    );
-                                                  }),
-                                              shape:
-                                                  WidgetStateProperty.all<
-                                                    RoundedRectangleBorder
-                                                  >(
-                                                    RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            18.0,
-                                                          ),
-                                                    ),
-                                                  ),
-                                              padding:
-                                                  WidgetStateProperty.all<
-                                                    EdgeInsets
-                                                  >(
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 24,
-                                                      vertical: 12,
-                                                    ),
-                                                  ),
-                                              elevation:
-                                                  WidgetStateProperty.resolveWith<
-                                                    double?
-                                                  >((Set<WidgetState> states) {
-                                                    if (states.contains(
-                                                      WidgetState.pressed,
-                                                    )) {
-                                                      return 2.0;
-                                                    }
-                                                    return 5.0;
-                                                  }),
-                                              textStyle:
-                                                  WidgetStateProperty.all<
-                                                    TextStyle
-                                                  >(
-                                                    const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                              overlayColor:
-                                                  WidgetStateProperty.resolveWith<
-                                                    Color?
-                                                  >((Set<WidgetState> states) {
-                                                    if (states.contains(
-                                                      WidgetState.hovered,
-                                                    )) {
-                                                      return AppTheme.getPrimaryTextColor(
-                                                        context,
-                                                      ).withValues(alpha: 0.08);
-                                                    }
-                                                    if (states.contains(
-                                                          WidgetState.focused,
-                                                        ) ||
-                                                        states.contains(
-                                                          WidgetState.pressed,
-                                                        )) {
-                                                      return AppTheme.getPrimaryTextColor(
-                                                        context,
-                                                      ).withValues(alpha: 0.24);
-                                                    }
-                                                    return null;
-                                                  }),
-                                            ),
-                                            onPressed: _resetAllFilters,
-                                            child: const Text(
-                                              'Restablecer filtros',
-                                              style: TextStyle(fontSize: 16),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _refreshData,
+                                    child: const Text('Reintentar'),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                    body: Column(
-                      children: [
-                        // Contenido principal (Expanded)
-                        Expanded(
-                          child: isLoading
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    AppTheme.getSpinKitPumpingHeart(context),
-                                    const SizedBox(height: 20),
-                                    const Text(
-                                      'Cargando carreras...',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Stack(
-                                children: [
-                                  // Lista principal de carreras
-                                  if (!_isWebViewVisible)
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        const double tabletBreakpoint = 600.0;
-
-                                        if (constraints.maxWidth >
-                                            tabletBreakpoint) {
-                                          int crossAxisCount =
-                                              (constraints.maxWidth / 350.0)
-                                                  .floor()
-                                                  .clamp(2, 4);
-
-                                          return RefreshIndicator(
-                                            onRefresh: _refreshUserFavorites,
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? Colors.white
-                                                : AppTheme.getPrimaryControlColor(
-                                                    context,
+                            )
+                          : Stack(
+                              children: [
+                                if (!_isWebViewVisible)
+                                  RefreshIndicator(
+                                    onRefresh: _refreshData,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : AppTheme.getPrimaryControlColor(context),
+                                    backgroundColor: AppTheme.getSurfaceColor(context),
+                                    child: _buildRaceList(context, raceProvider),
+                                  ),
+                                if (_isWebViewVisible)
+                                  Container(
+                                    color: AppTheme.getScaffoldBackground(context),
+                                    child: Column(
+                                      children: [
+                                        if (_isWebViewLoading)
+                                          const LinearProgressIndicator(),
+                                        if (_webViewError != null)
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            color: Colors.red.shade100,
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.error, color: Colors.red),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    _webViewError!,
+                                                    style: const TextStyle(color: Colors.red),
                                                   ),
-                                            backgroundColor:
-                                                AppTheme.getSurfaceColor(context),
-                                            child: MasonryGridView.count(
-                                              padding: const EdgeInsets.all(12.0),
-                                              itemCount: _filteredRaces.length,
-                                              crossAxisCount: crossAxisCount,
-                                              crossAxisSpacing: 10.0,
-                                              mainAxisSpacing: 10.0,
-                                              itemBuilder: (context, index) {
-                                                final race = _filteredRaces[index];
-                                                return RaceCard(
-                                                  race: race,
-                                                  isGridView: true,
-                                                  onTap: () {
-                                                    if (race
-                                                            .registrationLink
-                                                            ?.isNotEmpty ??
-                                                        false) {
-                                                      _showRaceInWebView(
-                                                        race.registrationLink!,
-                                                      );
-                                                    } else {
-                                                      debugPrint(
-                                                        'No se encontró enlace para ${race.name}',
-                                                      );
-                                                    }
-                                                  },
-                                                  onFavoriteToggle: () =>
-                                                      _toggleFavorite(race),
-                                                  onShare: () =>
-                                                      _handleShareRace(race),
-                                                );
-                                              },
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => _hideWebView(),
+                                                  child: const Text('Cerrar'),
+                                                ),
+                                              ],
                                             ),
-                                          );
-                                        } else {
-                                          return RefreshIndicator(
-                                            onRefresh: _refreshUserFavorites,
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? Colors.white
-                                                : AppTheme.getPrimaryControlColor(
-                                                    context,
-                                                  ),
-                                            backgroundColor:
-                                                AppTheme.getSurfaceColor(context),
-                                            child: ListView.builder(
-                                              padding: const EdgeInsets.symmetric(
-                                                vertical: 4.0,
-                                              ),
-                                              itemCount: _filteredRaces.length,
-                                              itemBuilder: (context, index) {
-                                                final race = _filteredRaces[index];
-                                                return RaceCard(
-                                                  race: race,
-                                                  isGridView: false,
-                                                  onTap: () {
-                                                    if (race
-                                                            .registrationLink
-                                                            ?.isNotEmpty ??
-                                                        false) {
-                                                      _showRaceInWebView(
-                                                        race.registrationLink!,
-                                                      );
-                                                    } else {
-                                                      debugPrint(
-                                                        'No se encontró enlace para ${race.name}',
-                                                      );
-                                                    }
-                                                  },
-                                                  onFavoriteToggle: () =>
-                                                      _toggleFavorite(race),
-                                                  onShare: () =>
-                                                      _handleShareRace(race),
-                                                );
-                                              },
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-
-                                  // WebView overlay
-                                  if (_isWebViewVisible)
-                                    Container(
-                                      color: AppTheme.getScaffoldBackground(
-                                        context,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          if (_isWebViewLoading)
-                                            const LinearProgressIndicator(),
+                                          ),
+                                        if (_webViewError == null)
                                           Expanded(
                                             child: WebViewWidget(
                                               controller: _controller,
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                      ],
                                     ),
-                                ],
-                              ),
-                        ),
-                        // Banner de AdMob en la parte inferior
-                        if (_adService.isBannerAdLoaded)
-                          Container(
-                            color: AppTheme.getPrimaryControlColor(context),
-                            width: double.infinity,
-                            alignment: Alignment.center,
-                            child: _adService.getBannerWidget(),
-                          ),
-                      ],
+                                  ),
+                              ],
+                            ),
                     ),
-                  ),
+                    if (adProvider.isBannerAdLoaded)
+                      Container(
+                        color: AppTheme.getPrimaryControlColor(context),
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        child: adProvider.getBannerWidget(),
+                      ),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-      }, // Cierre del builder del Consumer
-    ); // Cierre del Consumer
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRaceList(BuildContext context, RaceProvider raceProvider) {
+    final races = raceProvider.filteredRaces;
+    if (races.isEmpty && !raceProvider.isLoading) {
+      return ListView(
+        children: const [
+          SizedBox(height: 200),
+          Center(
+            child: Text(
+              'No se encontraron carreras con los filtros seleccionados',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double tabletBreakpoint = 600.0;
+
+        if (constraints.maxWidth > tabletBreakpoint) {
+          int crossAxisCount =
+              (constraints.maxWidth / 350.0).floor().clamp(2, 4);
+
+          return MasonryGridView.count(
+            padding: const EdgeInsets.all(12.0),
+            itemCount: races.length,
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 10.0,
+            mainAxisSpacing: 10.0,
+            itemBuilder: (context, index) {
+              final race = races[index];
+              return RaceCard(
+                race: race,
+                isGridView: true,
+                onTap: () {
+                  if (race.registrationLink?.isNotEmpty ?? false) {
+                    _showRaceInWebView(race.registrationLink!);
+                  }
+                },
+                onFavoriteToggle: () => _handleToggleFavorite(race),
+                onShare: () => _handleShareRace(race),
+              );
+            },
+          );
+        } else {
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            itemCount: races.length,
+            itemBuilder: (context, index) {
+              final race = races[index];
+              return RaceCard(
+                race: race,
+                isGridView: false,
+                onTap: () {
+                  if (race.registrationLink?.isNotEmpty ?? false) {
+                    _showRaceInWebView(race.registrationLink!);
+                  }
+                },
+                onFavoriteToggle: () => _handleToggleFavorite(race),
+                onShare: () => _handleShareRace(race),
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildFilterDrawer(BuildContext context, RaceProvider raceProvider) {
+final filterOptions = raceProvider.filterOptions;
+
+    final TextStyle drawersTextStyle = TextStyle(
+      color: AppTheme.getPrimaryTextColor(context),
+      fontSize: 25,
+      fontWeight: FontWeight.bold,
+    );
+
+    return Drawer(
+      child: Material(
+        color: AppTheme.getSurfaceColor(context),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.getDrawerHeaderColor(context),
+              ),
+              child: Center(
+                child: Text('Filtros', style: drawersTextStyle),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              title: DropdownButton<String>(
+                isExpanded: true,
+                hint: const Text("Mes"),
+                value: raceProvider.selectedMonth,
+                onChanged: (v) => raceProvider.setMonth(v),
+                items: filterOptions.months.map((m) {
+                  return DropdownMenuItem(
+                    value: m,
+                    child: Text(m[0].toUpperCase() + m.substring(1)),
+                  );
+                }).toList(),
+              ),
+            ),
+            ListTile(
+              title: DropdownButton<String>(
+                isExpanded: true,
+                hint: const Text("Zona"),
+                value: raceProvider.selectedZone,
+                onChanged: (v) => raceProvider.setZone(v),
+                items: filterOptions.zones.map((z) {
+                  return DropdownMenuItem(
+                    value: z,
+                    child: Text(z[0].toUpperCase() + z.substring(1)),
+                  );
+                }).toList(),
+              ),
+            ),
+            ListTile(
+              title: DropdownButton<String>(
+                isExpanded: true,
+                hint: const Text("Tipo"),
+                value: raceProvider.selectedType,
+                onChanged: (v) => raceProvider.setType(v),
+                items: filterOptions.types.map((t) {
+                  return DropdownMenuItem(
+                    value: t,
+                    child: Text(t),
+                  );
+                }).toList(),
+              ),
+            ),
+            ListTile(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Precio '),
+                  RangeSlider(
+                    values: raceProvider.selectedPriceRange,
+                    min: raceProvider.filteredMinPrice,
+                    max: raceProvider.filteredMaxPrice > raceProvider.filteredMinPrice
+                        ? raceProvider.filteredMaxPrice
+                        : raceProvider.filteredMinPrice + 1,
+                    divisions: raceProvider.filteredMaxPrice > raceProvider.filteredMinPrice
+                        ? ((raceProvider.filteredMaxPrice - raceProvider.filteredMinPrice) / 1)
+                            .round()
+                            .clamp(1, 200)
+                        : null,
+                    labels: RangeLabels(
+                      '${raceProvider.selectedPriceRange.start.round()}€',
+                      '${raceProvider.selectedPriceRange.end.round()}€',
+                    ),
+                    activeColor: AppTheme.getSliderActiveColor(context),
+                    inactiveColor: AppTheme.getSliderInactiveColor(context),
+                    onChanged: (values) =>
+                        raceProvider.setPriceRange(values),
+                    onChangeEnd: (values) =>
+                        raceProvider.setPriceRange(values, manualChange: true),
+                  ),
+                  Container(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Center(
+                      child: Text(
+                        "${raceProvider.selectedPriceRange.start.round()}€ - ${raceProvider.selectedPriceRange.end.round()}€",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Distancia '),
+                  RangeSlider(
+                    values: raceProvider.selectedDistanceRange,
+                    min: raceProvider.filteredMinDistance,
+                    max: raceProvider.filteredMaxDistance > raceProvider.filteredMinDistance
+                        ? raceProvider.filteredMaxDistance
+                        : raceProvider.filteredMinDistance + 1,
+                    divisions: raceProvider.filteredMaxDistance > raceProvider.filteredMinDistance
+                        ? ((raceProvider.filteredMaxDistance - raceProvider.filteredMinDistance) / 1)
+                            .round()
+                            .clamp(1, 1000)
+                        : null,
+                    labels: RangeLabels(
+                      '${raceProvider.selectedDistanceRange.start.round()}K',
+                      '${raceProvider.selectedDistanceRange.end.round()}K',
+                    ),
+                    activeColor: AppTheme.getSliderActiveColor(context),
+                    inactiveColor: AppTheme.getSliderInactiveColor(context),
+                    onChanged: (values) =>
+                        raceProvider.setDistanceRange(values),
+                    onChangeEnd: (values) =>
+                        raceProvider.setDistanceRange(values, manualChange: true),
+                  ),
+                  Container(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Center(
+                      child: Text(
+                        "${raceProvider.selectedDistanceRange.start.round()}K - ${raceProvider.selectedDistanceRange.end.round()}K",
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.center,
+                    child: TextButton(
+                      style: ButtonStyle(
+                        backgroundColor:
+                            WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+                              if (states.contains(WidgetState.pressed)) {
+                                return Theme.of(context).colorScheme.primary.withValues(alpha: 0.8);
+                              }
+                              if (states.contains(WidgetState.hovered)) {
+                                return Theme.of(context).colorScheme.primary.withValues(alpha: 0.9);
+                              }
+                              return AppTheme.getSliderActiveColor(context);
+                            }),
+                        foregroundColor:
+                            WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+                              return AppTheme.getPrimaryTextColor(context);
+                            }),
+                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18.0),
+                          ),
+                        ),
+                        padding: WidgetStateProperty.all<EdgeInsets>(
+                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        elevation: WidgetStateProperty.resolveWith<double?>((Set<WidgetState> states) {
+                          if (states.contains(WidgetState.pressed)) return 2.0;
+                          return 5.0;
+                        }),
+                        textStyle: WidgetStateProperty.all<TextStyle>(
+                          const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        overlayColor:
+                            WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+                              if (states.contains(WidgetState.hovered)) {
+                                return AppTheme.getPrimaryTextColor(context).withValues(alpha: 0.08);
+                              }
+                              if (states.contains(WidgetState.focused) ||
+                                  states.contains(WidgetState.pressed)) {
+                                return AppTheme.getPrimaryTextColor(context).withValues(alpha: 0.24);
+                              }
+                              return null;
+                            }),
+                      ),
+                      onPressed: () => raceProvider.resetAllFilters(),
+                      child: const Text(
+                        'Restablecer filtros',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -20,7 +20,6 @@ class RaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Variables de configuración
     final double cardHorizontalMargin = isGridView ? 8.0 : 16.0;
     final double cardPadding = isGridView ? 12.0 : 16.0;
     final int? titleMaxLines = isGridView ? null : 1;
@@ -59,13 +58,11 @@ class RaceCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Contenido principal
                 Expanded(
                   flex: 8,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nombre de la carrera
                       Text(
                         race.name,
                         maxLines: titleMaxLines,
@@ -79,34 +76,30 @@ class RaceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8.0),
 
-                      // Fecha y Hora
                       if (race.date?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Fecha: ',
-                          '${race.date} - ${race.month.substring(0, 1).toUpperCase()}${race.month.substring(1).toLowerCase()}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}',
+                          '${race.date} - ${race.displayMonth}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}',
                           labelStyle,
                           resultRaceStyle,
                         ),
 
-                      // Zona
                       if (race.zone?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Zona: ',
-                          '${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase()}',
+                          race.displayZone,
                           labelStyle,
                           resultRaceStyle,
                         ),
 
-                      //Ciudad
                       if (race.place?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Ciudad: ',
-                          '${race.place?.split('(')[0][0].toUpperCase()}${race.place?.split('(')[0].substring(1).toLowerCase()}',
+                          race.displayPlace,
                           labelStyle,
                           resultRaceStyle,
                         ),
 
-                      // Tipo + Senderista
                       if (race.type?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Tipo: ',
@@ -115,15 +108,13 @@ class RaceCard extends StatelessWidget {
                           resultRaceStyle,
                         ),
 
-                      // Distancias
                       _buildInfoRow(
                         'Distancia: ',
-                        _formatDistances(race.distances),
+                        race.displayDistances,
                         labelStyle,
                         resultRaceStyle,
                       ),
 
-                      // Precio
                       if (race.precio?.isNotEmpty ?? false)
                         _buildInfoRow(
                           'Precio: ',
@@ -137,7 +128,6 @@ class RaceCard extends StatelessWidget {
 
                 const VerticalDivider(),
 
-                // Iconos de acción
                 SizedBox(
                   width: 50,
                   child: Column(
@@ -157,7 +147,6 @@ class RaceCard extends StatelessWidget {
                         onPressed: onFavoriteToggle,
                       ),
 
-                      // Icono de compartir
                       IconButton(
                         icon: Icon(
                           Icons.share,
@@ -193,12 +182,5 @@ class RaceCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDistances(List<double> distances) {
-    if (distances.isEmpty) return 'No disponible';
-
-    List<double> sortedDistances = List.from(distances)..sort();
-    return '${sortedDistances.join('K, ').replaceAll('.0', '')}K';
   }
 }

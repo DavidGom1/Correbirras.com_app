@@ -5,7 +5,6 @@ class NotificationUtils {
   static const Duration _defaultDuration = Duration(seconds: 3);
   static OverlayEntry? _currentOverlay;
 
-  /// Muestra una notificación de éxito
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -22,7 +21,6 @@ class NotificationUtils {
     );
   }
 
-  /// Muestra una notificación de error
   static void showError(
     BuildContext context,
     String message, {
@@ -39,7 +37,6 @@ class NotificationUtils {
     );
   }
 
-  /// Muestra una notificación de información
   static void showInfo(
     BuildContext context,
     String message, {
@@ -56,7 +53,6 @@ class NotificationUtils {
     );
   }
 
-  /// Muestra una notificación de advertencia
   static void showWarning(
     BuildContext context,
     String message, {
@@ -73,7 +69,6 @@ class NotificationUtils {
     );
   }
 
-  /// Muestra una notificación personalizada con el color principal de la app
   static void showPrimary(
     BuildContext context,
     String message, {
@@ -91,7 +86,6 @@ class NotificationUtils {
     );
   }
 
-  /// Método para mostrar notificación usando Overlay (aparece por encima de todo)
   static void _showOverlayNotification({
     required BuildContext context,
     required String message,
@@ -100,7 +94,6 @@ class NotificationUtils {
     required Color backgroundColor,
     required Duration duration,
   }) {
-    // Remover overlay anterior si existe
     _removeCurrentOverlay();
 
     if (!context.mounted) return;
@@ -119,36 +112,25 @@ class NotificationUtils {
 
     overlay.insert(_currentOverlay!);
 
-    // Auto-remover después de la duración especificada
     Future.delayed(duration, () {
       _removeCurrentOverlay();
     });
   }
 
-  /// Remueve el overlay actual
   static void _removeCurrentOverlay() {
     _currentOverlay?.remove();
     _currentOverlay = null;
   }
 
-  /// Oculta cualquier notificación actualmente mostrada
-  static void hideCurrentNotification(BuildContext context) {
+  static void hideCurrentNotification() {
     _removeCurrentOverlay();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    }
   }
 
-  /// Oculta todas las notificaciones
-  static void clearAllNotifications(BuildContext context) {
+  static void clearAllNotifications() {
     _removeCurrentOverlay();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-    }
   }
 }
 
-/// Widget personalizado para mostrar la notificación en overlay
 class _NotificationOverlay extends StatefulWidget {
   final String message;
   final String? title;
@@ -203,9 +185,10 @@ class _NotificationOverlayState extends State<_NotificationOverlay>
     super.dispose();
   }
 
-  void _dismiss() async {
-    await _animationController.reverse();
-    widget.onDismiss();
+  void _dismiss() {
+    _animationController.reverse().then((_) {
+      widget.onDismiss();
+    });
   }
 
   @override

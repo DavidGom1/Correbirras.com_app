@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -8,69 +9,66 @@ class UtilService {
   factory UtilService() => _instance;
   UtilService._internal();
 
-  // Function to send email
   Future<void> sendEmail(String emailAddress) async {
     final Uri emailLaunchUri = Uri(scheme: 'mailto', path: emailAddress);
     if (await canLaunchUrl(emailLaunchUri)) {
       await launchUrl(emailLaunchUri);
     } else {
-      throw 'Could not launch $emailLaunchUri';
+      throw 'Could not launch $emailAddress';
     }
   }
 
-  // Function to rate the app — intenta el diálogo nativo In-App Review primero,
-  // si no está disponible abre la página de Google Play.
-  Future<void> rateApp({String? packageName}) async {
+  Future<bool> rateApp({String? packageName}) async {
     final InAppReview inAppReview = InAppReview.instance;
+    final String appPackage = packageName ?? 'com.correbirras.agenda';
 
     try {
-      if (await inAppReview.isAvailable()) {
+      final isAvailable = await inAppReview.isAvailable();
+      if (isAvailable) {
         await inAppReview.requestReview();
-        return;
+        return true;
       }
-    } catch (_) {
-      // Si falla, caer al fallback
+    } catch (e) {
+      debugPrint('InAppReview no disponible: $e');
     }
 
-    // Fallback: abrir Google Play directamente
-    final String appPackage = packageName ?? 'com.correbirras.agenda';
-    final Uri uri = Uri.parse('market://details?id=$appPackage');
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      final Uri webUri = Uri.parse(
-        'https://play.google.com/store/apps/details?id=$appPackage',
-      );
-      if (await canLaunchUrl(webUri)) {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      }
+    final Uri marketUri = Uri.parse('market://details?id=$appPackage');
+    if (await canLaunchUrl(marketUri)) {
+      await launchUrl(marketUri);
+      return true;
     }
+
+    final Uri webUri = Uri.parse(
+      'https://play.google.com/store/apps/details?id=$appPackage',
+    );
+    if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      return true;
+    }
+
+    return false;
   }
 
-  // Modified _launchURL function to open in external apps for social media
   Future<void> launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      // Use externalApplication for social media links
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       throw 'Could not launch $uri';
     }
   }
 
-  // Function to share race information
   void shareRace(Race race) {
     final String shareText =
         '''
 🏃‍♂️ ¡Echa un vistazo a esta carrera!
 
 📅 Carrera: ${race.name}
-📍 Fecha: ${race.date} - ${race.month}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}
-🌍 Zona: ${race.zone?[0].toUpperCase()}${race.zone?.substring(1).toLowerCase() ?? ''}
+📍 Fecha: ${race.date ?? 'No disponible'} - ${race.displayMonth}${race.hora != null && race.hora!.isNotEmpty ? ' (${race.hora})' : ''}
+🌍 Zona: ${race.displayZone}
 🏃 Tipo: ${race.type ?? 'No especificado'}${race.senderista ? ' 🥾' : ''}
-📏 Distancias: ${_formatDistances(race.distances)}
-💰 Precio: ${race.precio ?? 'No especificado'}
+📏 Distancias: ${race.displayDistances}
+💰 Precio: ${race.precio ?? 'No especificado'}€
 
 ${race.registrationLink?.isNotEmpty ?? false ? '🔗 Más información: ${race.registrationLink}' : ''}
 
@@ -81,15 +79,6 @@ ${race.registrationLink?.isNotEmpty ?? false ? '🔗 Más información: ${race.r
     Share.share(shareText);
   }
 
-  // Helper method to format distances
-  String _formatDistances(List<double> distances) {
-    if (distances.isEmpty) return 'No disponible';
-
-    List<double> sortedDistances = List.from(distances)..sort();
-    return '${sortedDistances.join('K, ').replaceAll('.0', '')}K';
-  }
-
-  // Method to check if URL is a social media domain
   bool isSocialMediaUrl(String url) {
     final String lowerUrl = url.toLowerCase();
     final List<String> socialMediaDomains = [
@@ -105,8 +94,16 @@ ${race.registrationLink?.isNotEmpty ?? false ? '🔗 Más información: ${race.r
     return socialMediaDomains.any((domain) => lowerUrl.contains(domain));
   }
 
-  // Method to check if URL is a PDF
   bool isPdfUrl(String url) {
     return url.toLowerCase().endsWith('.pdf');
+  }
+
+  bool isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (_) {
+      return false;
+    }
   }
 }

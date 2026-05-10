@@ -115,11 +115,10 @@ class _AuthDialogState extends State<AuthDialog> {
           TextFormField(
             style: AppTheme.getInputTextStyle(context),
             controller: _emailController,
+            autofillHints: const [AutofillHints.email],
             decoration: ThemeUtils.getAdaptiveInputDecoration(context, 'Email')
                 .copyWith(
-                  labelStyle: AppTheme.getLabelTextStyle(
-                    context,
-                  ), // 👈 AQUÍ AGREGAS TU MÉTODO
+                  labelStyle: AppTheme.getLabelTextStyle(context),
                   prefixIcon: Icon(
                     Icons.email,
                     color: AppTheme.getSecondaryIconColor(context),
@@ -145,14 +144,15 @@ class _AuthDialogState extends State<AuthDialog> {
           TextFormField(
             style: AppTheme.getInputTextStyle(context),
             controller: _passwordController,
+            autofillHints: _isLoginMode
+                ? const [AutofillHints.password]
+                : const [AutofillHints.newPassword],
             decoration:
                 ThemeUtils.getAdaptiveInputDecoration(
                   context,
                   'Contraseña',
                 ).copyWith(
-                  labelStyle: AppTheme.getLabelTextStyle(
-                    context,
-                  ), // 👈 AQUÍ TAMBIÉN
+                  labelStyle: AppTheme.getLabelTextStyle(context),
                   prefixIcon: Icon(
                     Icons.lock,
                     color: AppTheme.getSecondaryIconColor(context),

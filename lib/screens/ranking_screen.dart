@@ -19,9 +19,13 @@ class _RankingScreenState extends State<RankingScreen> {
   Map<String, RaceRating> _ratings = {};
   bool _isLoading = true;
   bool _isTop10Expanded = false;
-  String _sortBy = 'media'; // 'media', 'votos', 'nombre'
+  String _sortBy = 'media';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  List<RaceRating>? _sortedRatingsCache;
+  String? _lastSortBy;
+  String? _lastSearchQuery;
 
   @override
   void dispose() {
@@ -39,34 +43,41 @@ class _RankingScreenState extends State<RankingScreen> {
     setState(() => _isLoading = true);
     try {
       _ratings = await _votingService.fetchAllRatings();
+      _invalidateCache();
     } catch (e) {
       debugPrint("Error cargando ratings: $e");
     }
     if (mounted) setState(() => _isLoading = false);
   }
 
+  void _invalidateCache() {
+    _sortedRatingsCache = null;
+    _lastSortBy = null;
+    _lastSearchQuery = null;
+  }
+
   List<RaceRating> get _sortedRatings {
-    // Usamos un mapa para combinar sin duplicados
+    if (_sortedRatingsCache != null &&
+        _lastSortBy == _sortBy &&
+        _lastSearchQuery == _searchQuery) {
+      return _sortedRatingsCache!;
+    }
+
     Map<String, RaceRating> combinedMap = {};
-    
-    // 1. Añadimos todas las que ya tienen votos (para no perder las del histórico)
+
     for (var rating in _ratings.values) {
       combinedMap[rating.carreraId.toLowerCase()] = rating;
     }
 
-    // 2. Añadimos el resto de carreras (que no tengan votos)
     for (var race in widget.allRaces) {
       final raceId = race.name.toLowerCase().replaceAll(' ', '_');
       final simpleId = race.name.toLowerCase();
-      
-      // Si la carrera no está ya en el mapa por su ID o nombre, la añadimos a 0
+
       if (!combinedMap.containsKey(raceId) && !combinedMap.containsKey(simpleId)) {
-        // Comprobamos si hay alguna otra coincidencia en los valores ya existentes
-        final existingMatch = combinedMap.values.any((r) => 
-          r.carreraId.toLowerCase() == raceId || 
-          r.carreraId.toLowerCase() == simpleId
+        final existingMatch = combinedMap.values.any(
+          (r) => r.carreraId.toLowerCase() == raceId || r.carreraId.toLowerCase() == simpleId,
         );
-        
+
         if (!existingMatch) {
           combinedMap[simpleId] = RaceRating(
             carreraId: race.name,
@@ -80,7 +91,6 @@ class _RankingScreenState extends State<RankingScreen> {
 
     List<RaceRating> combinedList = combinedMap.values.toList();
 
-    // Filtro de búsqueda
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       combinedList = combinedList.where((r) {
@@ -100,14 +110,15 @@ class _RankingScreenState extends State<RankingScreen> {
         combinedList.sort((a, b) => a.carreraId.compareTo(b.carreraId));
         break;
     }
+
+    _sortedRatingsCache = combinedList;
+    _lastSortBy = _sortBy;
+    _lastSearchQuery = _searchQuery;
     return combinedList;
   }
 
   List<RaceRating> get _top10 {
-    return _sortedRatings
-        .where((r) => r.totalVotos >= 3)
-        .take(10)
-        .toList();
+    return _sortedRatings.where((r) => r.totalVotos >= 3).take(10).toList();
   }
 
   @override
@@ -141,15 +152,11 @@ class _RankingScreenState extends State<RankingScreen> {
                       : AppTheme.getPrimaryControlColor(context),
                   child: CustomScrollView(
                     slivers: [
-                      // Top 10 Section
                       if (_top10.isNotEmpty) ...[
                         SliverToBoxAdapter(child: _buildTop10Section()),
                       ],
-                      // Sort controls
                       SliverToBoxAdapter(child: _buildSortControls()),
-                      // Search bar
                       SliverToBoxAdapter(child: _buildSearchBar()),
-                      // All ratings
                       SliverToBoxAdapter(child: _buildAllRatingsList()),
                     ],
                   ),
@@ -200,19 +207,14 @@ class _RankingScreenState extends State<RankingScreen> {
             ),
           ),
           ...(_isTop10Expanded ? _top10 : _top10.take(3)).toList().asMap().entries.map((entry) {
-            final i = entry.key;
-            final rating = entry.value;
-            return _buildTop10Row(i, rating);
+            return _buildTop10Row(entry.key, entry.value);
           }),
-          
           if (_top10.length > 3)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: TextButton.icon(
                 onPressed: () {
-                  setState(() {
-                    _isTop10Expanded = !_isTop10Expanded;
-                  });
+                  setState(() => _isTop10Expanded = !_isTop10Expanded);
                 },
                 icon: Icon(
                   _isTop10Expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
@@ -224,7 +226,6 @@ class _RankingScreenState extends State<RankingScreen> {
                 ),
               ),
             ),
-            
           Padding(
             padding: const EdgeInsets.only(bottom: 12, top: 4, left: 12, right: 12),
             child: Text(
@@ -271,9 +272,7 @@ class _RankingScreenState extends State<RankingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: isTopThree
-            ? BoxDecoration(
-                color: medalColor?.withValues(alpha: 0.08),
-              )
+            ? BoxDecoration(color: medalColor?.withValues(alpha: 0.08))
             : null,
         child: Row(
           children: [
@@ -345,26 +344,19 @@ class _RankingScreenState extends State<RankingScreen> {
           DropdownButton<String>(
             value: _sortBy,
             underline: const SizedBox(),
-            icon: Icon(
-              Icons.sort,
-              color: AppTheme.getRaceCardSubtext(context),
-            ),
+            icon: Icon(Icons.sort, color: AppTheme.getRaceCardSubtext(context)),
             items: const [
-              DropdownMenuItem(
-                value: 'media',
-                child: Text('Por puntuación'),
-              ),
-              DropdownMenuItem(
-                value: 'votos',
-                child: Text('Por nº de votos'),
-              ),
-              DropdownMenuItem(
-                value: 'nombre',
-                child: Text('Por nombre'),
-              ),
+              DropdownMenuItem(value: 'media', child: Text('Por puntuación')),
+              DropdownMenuItem(value: 'votos', child: Text('Por nº de votos')),
+              DropdownMenuItem(value: 'nombre', child: Text('Por nombre')),
             ],
             onChanged: (value) {
-              if (value != null) setState(() => _sortBy = value);
+              if (value != null) {
+                setState(() {
+                  _sortBy = value;
+                  _invalidateCache();
+                });
+              }
             },
           ),
         ],
@@ -389,6 +381,7 @@ class _RankingScreenState extends State<RankingScreen> {
                     _searchController.clear();
                     setState(() {
                       _searchQuery = '';
+                      _invalidateCache();
                     });
                   },
                 )
@@ -406,6 +399,7 @@ class _RankingScreenState extends State<RankingScreen> {
         onChanged: (value) {
           setState(() {
             _searchQuery = value;
+            _invalidateCache();
           });
         },
       ),
@@ -476,8 +470,13 @@ class _RankingScreenState extends State<RankingScreen> {
       builder: (context) => _RatingDetailSheet(
         rating: rating,
         userId: user?.uid,
+        isLoggedIn: user != null,
         votingService: _votingService,
         onVoteSubmitted: _loadRatings,
+        onLoginRequired: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
@@ -500,18 +499,21 @@ class _RankingScreenState extends State<RankingScreen> {
   }
 }
 
-// Bottom sheet con detalle de la valoración y formulario de voto
 class _RatingDetailSheet extends StatefulWidget {
   final RaceRating rating;
   final String? userId;
+  final bool isLoggedIn;
   final VotingService votingService;
   final VoidCallback onVoteSubmitted;
+  final VoidCallback onLoginRequired;
 
   const _RatingDetailSheet({
     required this.rating,
     required this.userId,
+    required this.isLoggedIn,
     required this.votingService,
     required this.onVoteSubmitted,
+    required this.onLoginRequired,
   });
 
   @override
@@ -522,6 +524,7 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
   bool _showVoteForm = false;
   bool _isSubmitting = false;
   bool _loadingMyVote = false;
+  String? _validationError;
   final Map<String, double> _sliders = {};
 
   @override
@@ -553,7 +556,6 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
 
   Future<void> _submitVote() async {
     if (widget.userId == null) return;
-    setState(() => _isSubmitting = true);
 
     final vote = UserVote(
       organizacion: _sliders['organizacion']!.round(),
@@ -565,6 +567,14 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
       postmeta: _sliders['postmeta']!.round(),
       trofeos: _sliders['trofeos']!.round(),
     );
+
+    if (vote.isAllZero) {
+      setState(() => _validationError = 'Debes puntuar al menos una categoría');
+      return;
+    }
+    setState(() => _validationError = null);
+
+    setState(() => _isSubmitting = true);
 
     final success = await widget.votingService.submitVote(
       carreraId: widget.rating.carreraId,
@@ -612,7 +622,6 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
         child: ListView(
           controller: scrollController,
           children: [
-            // Handle
             Center(
               child: Container(
                 width: 40,
@@ -624,7 +633,6 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
                 ),
               ),
             ),
-            // Title
             Text(
               name.toUpperCase(),
               style: const TextStyle(
@@ -643,27 +651,36 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-
-            // Category bars
             ...voteCategories.map((cat) {
               final media = widget.rating.mediaPorCategoria[cat.key] ?? 0;
               return _buildCategoryBar(cat, media);
             }),
-
             const SizedBox(height: 20),
-
-            // Vote button / form
-            if (widget.userId == null)
+            if (!widget.isLoggedIn)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Inicia sesión para valorar esta carrera',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Inicia sesión para valorar esta carrera',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: widget.onLoginRequired,
+                      icon: const Icon(Icons.login),
+                      label: const Text('Iniciar sesión'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.getBrandOrange(context),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               )
             else if (!_showVoteForm)
@@ -696,6 +713,15 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
                 const Center(child: CircularProgressIndicator())
               else
                 ...voteCategories.map((cat) => _buildVoteSlider(cat)),
+              if (_validationError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _validationError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitVote,
@@ -757,9 +783,7 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
                 value: percentage,
                 minHeight: 8,
                 backgroundColor: Colors.grey.shade300,
-                valueColor: AlwaysStoppedAnimation(
-                  _getRatingColor(media),
-                ),
+                valueColor: AlwaysStoppedAnimation(_getRatingColor(media)),
               ),
             ),
           ),
@@ -804,7 +828,12 @@ class _RatingDetailSheetState extends State<_RatingDetailSheet> {
               divisions: 10,
               label: value.round().toString(),
               activeColor: _getRatingColor(value),
-              onChanged: (v) => setState(() => _sliders[cat.key] = v),
+              onChanged: (v) {
+                setState(() {
+                  _sliders[cat.key] = v;
+                  _validationError = null;
+                });
+              },
             ),
           ),
           SizedBox(

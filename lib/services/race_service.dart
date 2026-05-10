@@ -10,13 +10,10 @@ class RaceService {
   factory RaceService() => _instance;
   RaceService._internal();
 
-  // Credenciales de Supabase (se actualizan desde Remote Config)
   String _supabaseUrl = defaultSupabaseUrl;
   String _supabaseAnonKey = defaultSupabaseAnonKey;
   bool _remoteConfigInitialized = false;
 
-  /// Inicializa Firebase Remote Config y obtiene las credenciales de Supabase.
-  /// Si falla, se usan los valores por defecto hardcodeados.
   Future<void> _ensureRemoteConfig() async {
     if (_remoteConfigInitialized) return;
 
@@ -28,7 +25,6 @@ class RaceService {
         'supabase_anon_key': defaultSupabaseAnonKey,
       });
 
-      // Fetch con timeout corto para no bloquear la app
       await remoteConfig.setConfigSettings(RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 10),
         minimumFetchInterval: const Duration(hours: 1),
@@ -39,10 +35,9 @@ class RaceService {
       _supabaseUrl = remoteConfig.getString('supabase_url');
       _supabaseAnonKey = remoteConfig.getString('supabase_anon_key');
 
-      debugPrint("✅ Remote Config: credenciales Supabase obtenidas");
-      debugPrint("   URL: $_supabaseUrl");
+      debugPrint("✅ Remote Config: credenciales obtenidas");
     } catch (e) {
-      debugPrint("⚠️ Remote Config no disponible, usando valores por defecto: $e");
+      debugPrint("⚠️ Remote Config no disponible, usando valores por defecto");
       _supabaseUrl = defaultSupabaseUrl;
       _supabaseAnonKey = defaultSupabaseAnonKey;
     }
@@ -50,12 +45,7 @@ class RaceService {
     _remoteConfigInitialized = true;
   }
 
-  /// Descarga las carreras desde la API REST de Supabase.
-  ///
-  /// Las credenciales se obtienen de Firebase Remote Config (con fallback
-  /// a los valores hardcodeados si Remote Config no está disponible).
   Future<List<Race>> downloadAndParseRaces() async {
-    // Obtener credenciales actualizadas de Remote Config
     await _ensureRemoteConfig();
 
     try {
@@ -71,17 +61,12 @@ class RaceService {
       );
 
       if (response.statusCode != 200) {
-        debugPrint(
-          "ERROR: Fallo al obtener datos de Supabase: ${response.statusCode}",
-        );
-        debugPrint("Cuerpo: ${response.body}");
-        throw Exception(
-          'Error al descargar datos de Supabase: ${response.statusCode}',
-        );
+        debugPrint("ERROR: Fallo al obtener datos: ${response.statusCode}");
+        throw Exception('Error al descargar datos: ${response.statusCode}');
       }
 
       final List<dynamic> jsonData = json.decode(response.body);
-      debugPrint("✅ Recibidas ${jsonData.length} carreras de Supabase");
+      debugPrint("✅ Recibidas ${jsonData.length} carreras");
 
       final races = jsonData
           .map((row) => Race.fromSupabase(row as Map<String, dynamic>))
@@ -91,71 +76,42 @@ class RaceService {
       debugPrint("✅ Parseadas ${races.length} carreras válidas");
       return races;
     } catch (e) {
-      debugPrint("ERROR: Excepción al consultar Supabase: $e");
+      debugPrint("ERROR: Excepción al consultar datos: $e");
       rethrow;
     }
   }
 
-  // Métodos de filtrado
-  List<Race> applyFilters({
-    required List<Race> races,
-    String? selectedMonth,
-    String? selectedZone,
-    String? selectedType,
-    String? selectedTerrain,
-    RangeValues? selectedDistanceRange,
-    double? minDistance,
-    double? maxDistance,
-  }) {
-    List<Race> filtered = List.from(races);
-
-    if (selectedMonth != null) {
-      filtered = filtered.where((race) => race.month == selectedMonth).toList();
-    }
-
-    if (selectedZone != null) {
-      filtered = filtered.where((race) => race.zone == selectedZone).toList();
-    }
-
-    if (selectedType != null) {
-      filtered = filtered.where((race) => race.type == selectedType).toList();
-    }
-
-    if (selectedTerrain != null) {
-      filtered = filtered
-          .where((race) => race.terrain == selectedTerrain)
-          .toList();
-    }
-
-    if (selectedDistanceRange != null &&
-        minDistance != null &&
-        maxDistance != null) {
-      filtered = filtered.where((race) {
-        if (race.distances.isEmpty) return false;
-        return race.distances.any(
-          (distance) =>
-              distance >= selectedDistanceRange.start &&
-              distance <= selectedDistanceRange.end,
-        );
-      }).toList();
-    }
-
-    return filtered;
-  }
-
-  // Obtener opciones únicas para filtros
   FilterOptions getFilterOptions(List<Race> races) {
+    final months = <String>[];
+    for (final race in races) {
+      if (race.month.isNotEmpty && !months.contains(race.month)) {
+        months.add(race.month);
+      }
+    }
+
+    final zones = <String>[];
+    for (final race in races) {
+      if (race.zone != null && race.zone!.isNotEmpty && !zones.contains(race.zone)) {
+        zones.add(race.zone!);
+      }
+    }
+    zones.sort();
+
+    final types = <String>[];
+    for (final race in races) {
+      if (race.type != null && race.type!.isNotEmpty && !types.contains(race.type)) {
+        types.add(race.type!);
+      }
+    }
+    types.sort();
+
     return FilterOptions(
-      months: meseses,
-      zones: zonascolores.keys.toList(),
-      types: races.map((r) => r.type).whereType<String>().toSet().toList()
-        ..sort(),
-      terrains: races.map((r) => r.terrain).whereType<String>().toSet().toList()
-        ..sort(),
+      months: months.isNotEmpty ? months : List.from(meses),
+      zones: zones,
+      types: types,
     );
   }
 
-  // Obtener rango de distancias
   DistanceRange getDistanceRange(List<Race> races) {
     List<double> allDistances = [];
     for (var race in races) {
@@ -175,13 +131,11 @@ class FilterOptions {
   final List<String> months;
   final List<String> zones;
   final List<String> types;
-  final List<String> terrains;
 
   FilterOptions({
     required this.months,
     required this.zones,
     required this.types,
-    required this.terrains,
   });
 }
 

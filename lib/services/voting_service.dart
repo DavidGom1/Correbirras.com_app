@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import '../core/constants/app_constants.dart';
 
-/// Modelo para las estadísticas de valoración de una carrera.
 class RaceRating {
   final String carreraId;
   final double mediaGlobal;
@@ -19,7 +18,6 @@ class RaceRating {
   });
 }
 
-/// Modelo para un voto individual del usuario.
 class UserVote {
   final int organizacion;
   final int precio;
@@ -40,6 +38,16 @@ class UserVote {
     this.postmeta = 0,
     this.trofeos = 0,
   });
+
+  bool get isAllZero =>
+      organizacion == 0 &&
+      precio == 0 &&
+      bolsa == 0 &&
+      avituallamientos == 0 &&
+      perfil == 0 &&
+      ambiente == 0 &&
+      postmeta == 0 &&
+      trofeos == 0;
 
   factory UserVote.fromJson(Map<String, dynamic> json) {
     return UserVote(
@@ -66,7 +74,6 @@ class UserVote {
   };
 }
 
-/// Categorías de votación con sus etiquetas y emojis.
 class VoteCategory {
   final String key;
   final String label;
@@ -117,7 +124,6 @@ class VotingService {
     'Prefer': 'return=minimal',
   };
 
-  /// Obtiene todos los votos agrupados por carrera y calcula las medias.
   Future<Map<String, RaceRating>> fetchAllRatings() async {
     await _ensureCredentials();
 
@@ -175,12 +181,14 @@ class VotingService {
     return ratings;
   }
 
-  /// Obtiene el voto del usuario para una carrera específica.
   Future<UserVote?> fetchUserVote(String carreraId, String userId) async {
     await _ensureCredentials();
 
+    final encodedCarreraId = Uri.encodeComponent(carreraId);
+    final encodedUserId = Uri.encodeComponent(userId);
+
     final uri = Uri.parse(
-      '$_supabaseUrl/rest/v1/votos?carrera_id=eq.$carreraId&user_id=eq.$userId&select=*',
+      '$_supabaseUrl/rest/v1/votos?carrera_id=eq.$encodedCarreraId&user_id=eq.$encodedUserId&select=*',
     );
 
     final response = await http.get(uri, headers: _headers);
@@ -192,7 +200,6 @@ class VotingService {
     return UserVote.fromJson(data.first as Map<String, dynamic>);
   }
 
-  /// Envía o actualiza un voto (upsert).
   Future<bool> submitVote({
     required String carreraId,
     required String userId,
@@ -223,7 +230,7 @@ class VotingService {
       debugPrint("✅ Voto guardado para $carreraId");
       return true;
     } else {
-      debugPrint("❌ Error al votar: ${response.statusCode} ${response.body}");
+      debugPrint("❌ Error al votar: ${response.statusCode}");
       return false;
     }
   }

@@ -5,10 +5,10 @@ import '../services/util_service.dart';
 import '../utils/notification_utils.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/theme/app_theme.dart';
-import '../widgets/auth_dialog.dart'; // Importar el AuthDialog
-import '../screens/favorites_screen.dart'; // Importar FavoritesScreen
-import '../screens/ranking_screen.dart'; // Importar RankingScreen
-import '../models/race.dart'; // Importar el modelo Race
+import '../widgets/auth_dialog.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/ranking_screen.dart';
+import '../models/race.dart';
 
 class AppDrawer extends StatelessWidget {
   final bool isLoggedIn;
@@ -18,7 +18,6 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback onAuthTap;
   final VoidCallback onLogout;
   final VoidCallback onFavoritesTap;
-  // Parámetros adicionales para favoritos con animación personalizada
   final List<Race>? allRaces;
   final ToggleFavoriteCallback? toggleFavorite;
   final ShowWebViewCallback? showRaceInWebView;
@@ -33,7 +32,6 @@ class AppDrawer extends StatelessWidget {
     required this.onAuthTap,
     required this.onLogout,
     required this.onFavoritesTap,
-    // Parámetros opcionales para la navegación personalizada
     this.allRaces,
     this.toggleFavorite,
     this.showRaceInWebView,
@@ -53,16 +51,13 @@ class AppDrawer extends StatelessWidget {
     return Drawer(
       child: Column(
         children: <Widget>[
-          // Header del drawer con información de usuario - Clickeable para autenticación
           InkWell(
             onTap: isLoggedIn
                 ? null
                 : () {
-                    Navigator.pop(context); // Cerrar el drawer
-                    _showAuthDialogWithAnimation(
-                      context,
-                    ); // Abrir el popup con animación
-                  }, // Solo clickeable si no está logueado
+                    Navigator.pop(context);
+                    _showAuthDialogWithAnimation(context);
+                  },
             child: Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -70,16 +65,12 @@ class AppDrawer extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Título "Menú"
                   Text('Menú', style: drawersTextStyle),
                   SizedBox(height: 16),
-
-                  // Información del usuario - Area clickeable para autenticación
                   Container(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        // Avatar del usuario
                         CircleAvatar(
                           radius: 25,
                           backgroundImage:
@@ -98,8 +89,6 @@ class AppDrawer extends StatelessWidget {
                               : null,
                         ),
                         SizedBox(width: 12),
-
-                        // Información de texto del usuario
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,9 +97,7 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   userDisplayName ?? 'Usuario',
                                   style: TextStyle(
-                                    color: AppTheme.getPrimaryTextColor(
-                                      context,
-                                    ),
+                                    color: AppTheme.getPrimaryTextColor(context),
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -121,9 +108,7 @@ class AppDrawer extends StatelessWidget {
                                   Text(
                                     userEmail!,
                                     style: TextStyle(
-                                      color: AppTheme.getSecondaryTextColor(
-                                        context,
-                                      ),
+                                      color: AppTheme.getSecondaryTextColor(context),
                                       fontSize: 12,
                                     ),
                                     maxLines: 1,
@@ -133,9 +118,7 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   'Toca para iniciar sesión',
                                   style: TextStyle(
-                                    color: AppTheme.getPrimaryTextColor(
-                                      context,
-                                    ),
+                                    color: AppTheme.getPrimaryTextColor(context),
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -143,9 +126,7 @@ class AppDrawer extends StatelessWidget {
                                 Text(
                                   'Accede con Google',
                                   style: TextStyle(
-                                    color: AppTheme.getSecondaryTextColor(
-                                      context,
-                                    ),
+                                    color: AppTheme.getSecondaryTextColor(context),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -153,8 +134,6 @@ class AppDrawer extends StatelessWidget {
                             ],
                           ),
                         ),
-
-                        // Botón de cerrar sesión cuando está autenticado, o icono de login cuando no
                         if (isLoggedIn)
                           IconButton(
                             onPressed: () => _showLogoutConfirmation(context),
@@ -182,46 +161,47 @@ class AppDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.only(top: 20),
               children: <Widget>[
-                // ListTile para "Favoritos"
                 ListTile(
-                  leading: Icon(Icons.favorite), // Icono de favorito
+                  leading: Icon(Icons.favorite),
                   title: const Text('Favoritos'),
                   onTap: () {
-                    Navigator.pop(context); // Cerrar drawer
+                    Navigator.pop(context);
                     _navigateToFavoritesWithAnimation(context);
                   },
                 ),
-
-                // ListTile para "Ranking"
                 ListTile(
                   leading: Icon(Icons.emoji_events),
                   title: const Text('Ranking de carreras'),
                   onTap: () {
-                    Navigator.pop(context); // Cerrar drawer
+                    Navigator.pop(context);
                     _navigateToRankingWithAnimation(context);
                   },
                 ),
-
-                // ListTile para cambiar tema
                 Consumer<ThemeProvider>(
                   builder: (context, themeProvider, child) {
-                    return ListTile(
-                      leading: Icon(
-                        themeProvider.themeMode == ThemeMode.dark
-                            ? Icons.light_mode
-                            : Icons.dark_mode,
-                      ),
-                      title: Text(
-                        themeProvider.isDarkMode ? 'Modo Claro' : 'Modo Oscuro',
-                      ),
-                      onTap: () {
-                        themeProvider.toggleTheme();
-                      },
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            themeProvider.themeMode == AppThemeMode.dark
+                                ? Icons.dark_mode
+                                : themeProvider.themeMode == AppThemeMode.light
+                                    ? Icons.light_mode
+                                    : Icons.brightness_auto,
+                          ),
+                          title: Text(
+                            themeProvider.themeMode == AppThemeMode.dark
+                                ? 'Tema Oscuro'
+                                : themeProvider.themeMode == AppThemeMode.light
+                                    ? 'Tema Claro'
+                                    : 'Tema Sistema',
+                          ),
+                          onTap: () => themeProvider.cycleTheme(),
+                        ),
+                      ],
                     );
                   },
                 ),
-
-                // Línea divisoria moderna
                 Container(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -233,21 +213,18 @@ class AppDrawer extends StatelessWidget {
                         child: Container(
                           height: 1,
                           decoration: BoxDecoration(
-                            gradient: AppTheme.getDrawerDividerGradient(
-                              context,
-                            ),
+                            gradient: AppTheme.getDrawerDividerGradient(context),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-
                 ListTile(
                   leading: Icon(Icons.web),
-                  title: const Text('Ver la pagina correbirras.com'),
+                  title: const Text('Ver la página correbirras.com'),
                   onTap: () {
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                     utilService.launchURL('https://www.correbirras.com');
                   },
                 ),
@@ -255,16 +232,17 @@ class AppDrawer extends StatelessWidget {
                   leading: Icon(Icons.email),
                   title: const Text('Contacta con el club'),
                   onTap: () {
-                    Navigator.pop(context); // Close the drawer
+                    Navigator.pop(context);
                     utilService.sendEmail('correbirras@gmail.com');
                   },
                 ),
                 ListTile(
                   leading: Icon(Icons.star),
                   title: const Text('Calificar en Google Play'),
-                  onTap: () {
-                    Navigator.pop(context); // Close the drawer
-                    utilService.rateApp();
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    await utilService.rateApp();
                   },
                 ),
               ],
@@ -286,9 +264,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    utilService.launchURL(
-                      'https://www.facebook.com/correbirras',
-                    );
+                    utilService.launchURL('https://www.facebook.com/correbirras');
                   },
                 ),
                 SizedBox(width: 20),
@@ -303,9 +279,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    utilService.launchURL(
-                      'https://www.instagram.com/correbirras',
-                    );
+                    utilService.launchURL('https://www.instagram.com/correbirras');
                   },
                 ),
               ],
@@ -326,9 +300,7 @@ class AppDrawer extends StatelessWidget {
                   onPressed: () =>
                       utilService.launchURL('https://t.me/dagodev'),
                   style: TextButton.styleFrom(
-                    backgroundColor: AppTheme.getDrawerButtonBackground(
-                      context,
-                    ),
+                    backgroundColor: AppTheme.getDrawerButtonBackground(context),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
                     ),
@@ -363,9 +335,7 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  // Método para navegar a favoritos con animación personalizada
   void _navigateToFavoritesWithAnimation(BuildContext context) {
-    // Si tenemos los parámetros necesarios, usar navegación personalizada
     if (allRaces != null &&
         toggleFavorite != null &&
         showRaceInWebView != null &&
@@ -382,7 +352,6 @@ class AppDrawer extends StatelessWidget {
           },
           transitionDuration: const Duration(milliseconds: 300),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // Deslizamiento desde abajo
             final slideAnimation =
                 Tween<Offset>(
                   begin: const Offset(0.0, 1.0),
@@ -393,18 +362,15 @@ class AppDrawer extends StatelessWidget {
                     curve: Curves.easeOutCubic,
                   ),
                 );
-
             return SlideTransition(position: slideAnimation, child: child);
           },
         ),
       );
     } else {
-      // Fallback al método original
       onFavoritesTap();
     }
   }
 
-  // Método para navegar al ranking con animación personalizada
   void _navigateToRankingWithAnimation(BuildContext context) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -429,48 +395,37 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  // Método para mostrar popup de autenticación con animación
   Future<void> _showAuthDialogWithAnimation(BuildContext context) async {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black54,
-      transitionDuration: const Duration(
-        milliseconds: 400,
-      ), // Duración de la animación
-      pageBuilder:
-          (
-            BuildContext buildContext,
-            Animation<double> animation,
-            Animation<double> secondaryAnimation,
-          ) {
-            return const AuthDialog(); // Usar directamente el AuthDialog
-          },
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (BuildContext buildContext, Animation<double> animation, Animation<double> secondaryAnimation) {
+        return const AuthDialog();
+      },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        // Animación de deslizamiento desde abajo
         final slideAnimation =
             Tween<Offset>(
-              begin: const Offset(0.0, 1.0), // Comienza desde abajo
-              end: Offset.zero, // Termina en su posición normal
+              begin: const Offset(0.0, 1.0),
+              end: Offset.zero,
             ).animate(
               CurvedAnimation(
                 parent: animation,
-                curve: Curves.easeOutCubic, // Curva suave para entrada natural
+                curve: Curves.easeOutCubic,
               ),
             );
-
         return SlideTransition(position: slideAnimation, child: child);
       },
     );
   }
 
-  // Método para mostrar confirmación antes de cerrar sesión
   Future<void> _showLogoutConfirmation(BuildContext context) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: AppTheme.getDialogBackground(context),
           shape: RoundedRectangleBorder(
@@ -511,7 +466,7 @@ class AppDrawer extends StatelessWidget {
                 ),
               ),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
             ),
             ElevatedButton(
@@ -527,20 +482,16 @@ class AppDrawer extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar diálogo
-                Navigator.of(context).pop(); // Cerrar drawer
+                Navigator.of(dialogContext).pop();
 
                 try {
-                  onLogout(); // Ejecutar el logout
-
-                  // Mostrar notificación de éxito usando las utilidades
+                  onLogout();
                   NotificationUtils.showSuccess(
                     context,
                     'Tu sesión se ha cerrado correctamente',
                     title: 'Sesión Cerrada',
                   );
                 } catch (e) {
-                  // Mostrar error usando las utilidades
                   NotificationUtils.showError(
                     context,
                     'No se pudo cerrar la sesión: ${e.toString()}',
